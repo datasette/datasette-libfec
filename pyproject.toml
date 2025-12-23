@@ -11,7 +11,7 @@ classifiers=[
 requires-python = ">=3.10"
 dependencies = [
     "datasette>=1a23",
-    "datasette-plugin-router",
+    "datasette-plugin-router @ https://github.com/datasette/datasette-plugin-router/archive/refs/heads/main.zip",
     "libfec>=0.0.14",
 ]
 
@@ -41,10 +41,6 @@ asyncio_default_fixture_loop_scope = "function"
 
 [tool.setuptools.package-data]
 datasette_libfec = ["static/*", "templates/*"]
-
-[tool.uv.sources]
-datasette-plugin-router = { path = "../datasette-plugin-router" }
-
 
 [tool.setuptools.packages.find]
 exclude = [
