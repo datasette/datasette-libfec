@@ -40,7 +40,7 @@ asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.setuptools.package-data]
-datasette_libfec = ["static/*", "templates/*"]
+datasette_libfec = ["static/**/*", "templates/*", "manifest.json", "schema.sql"]
 
 [tool.setuptools.packages.find]
 exclude = [
