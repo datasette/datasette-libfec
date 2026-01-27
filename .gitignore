@@ -15,3 +15,6 @@ uv.lock
 *.db
 *.db-wal
 *.db-shm
+# Vite build outputs
+datasette_libfec/static/gen/
+datasette_libfec/manifest.json

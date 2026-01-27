@@ -11,17 +11,20 @@ types-watch:
       just types
 
 frontend *flags:
-    npx --prefix frontend \
-    esbuild \
-      --format=esm --bundle --minify \
-      --jsx-factory=h \
-      --jsx-fragment=Fragment \
-      --out-extension:.js=.min.js \
-      --out-extension:.css=.min.css \
-      --target=safari12 \
-      {{flags}} \
-      frontend/targets/import.tsx \
-      --outdir=datasette_libfec/static
+    npm run build --prefix frontend {{flags}}
+
+frontend-dev *flags:
+    npm run dev --prefix frontend -- --port 5177 {{flags}}
 
 dev *flags:
   uv run datasette -p 8004 tmp.db {{flags}}
+
+dev-with-hmr *flags:
+  DATASETTE_LIBFEC_VITE_PATH=http://localhost:5177/ \
+  watchexec \
+    --stop-signal SIGKILL \
+    -e py,html \
+    --ignore '*.db' \
+    --restart \
+    --clear -- \
+    just dev {{flags}}
