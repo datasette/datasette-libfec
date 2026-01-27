@@ -1,0 +1,140 @@
+# datasette-libfec
+
+A Datasette plugin for importing FEC (Federal Election Commission) data using the libfec CLI tool.
+
+## Architecture
+
+**Backend:** Python + Datasette + datasette-plugin-router
+**Frontend:** TypeScript + Preact + Vite (with HMR support)
+**Build Tool:** Just (Justfile)
+
+## Backend
+
+**Location:** `datasette_libfec/`
+
+- `__init__.py` - Plugin hooks, Vite manifest integration, template vars
+- `routes.py` - API routes (not currently in use, routes defined in `__init__.py`)
+- `templates/libfec.html` - Main UI template
+
+**Key Classes:**
+- `LibfecClient` - Wrapper for libfec CLI tool
+- `ManifestChunk` - Pydantic model for Vite manifest parsing
+
+**API Endpoints:**
+- `GET /-/libfec` - Main UI page
+- `POST /-/api/libfec` - Import FEC data (accepts committee/candidate/contest + ID + cycle)
+
+**Vite Integration:**
+Uses environment variable `DATASETTE_LIBFEC_VITE_PATH` to switch between:
+- **Dev mode:** Points to Vite dev server for HMR
+- **Production:** Reads `manifest.json` for hashed assets
+
+## Frontend
+
+**Location:** `frontend/`
+
+**Tech Stack:**
+- Preact 10 (lightweight React alternative)
+- TypeScript with strict mode
+- Vite 7 for dev server + bundling
+- openapi-fetch for type-safe API calls
+
+**Structure:**
+```
+frontend/
+├── src/
+│   ├── import.tsx        # Main entry point (form UI)
+│   └── api.d.ts          # Generated OpenAPI types
+├── vite.config.ts        # Vite config (builds to ../datasette_libfec/)
+├── tsconfig.json         # TS project references
+├── tsconfig.app.json     # App code config
+└── package.json          # Scripts: dev, build, preview, check
+```
+
+**Vite Config:**
+- Entry: `src/import.tsx`
+- Output: `../datasette_libfec/static/gen/` + `manifest.json`
+- Dev server: Port 5177 with CORS for localhost:8004
+
+## Development Workflow
+
+**With HMR (Recommended):**
+```bash
+# Terminal 1: Vite dev server
+just frontend-dev
+
+# Terminal 2: Datasette with HMR
+just dev-with-hmr
+```
+
+**Production Build:**
+```bash
+just frontend  # Build frontend
+just dev       # Run Datasette
+```
+
+**Type Generation:**
+```bash
+just types  # Generate frontend/api.d.ts from OpenAPI schema
+```
+
+## Just Commands
+
+| Command | Description |
+|---------|-------------|
+| `just types` | Generate TypeScript types from OpenAPI schema |
+| `just types-watch` | Watch and regenerate types on Python changes |
+| `just frontend` | Build production frontend bundle |
+| `just frontend-dev` | Start Vite dev server (port 5177) |
+| `just dev` | Run Datasette on port 8004 |
+| `just dev-with-hmr` | Run Datasette with HMR + auto-restart on file changes |
+
+## Key Files
+
+- `pyproject.toml` - Python package config, dependencies
+- `Justfile` - Build commands and workflows
+- `frontend/vite.config.ts` - Vite bundler configuration
+- `datasette_libfec/__init__.py` - Plugin entry point, Vite integration
+- `datasette_libfec/manifest.json` - Generated Vite manifest (gitignored)
+- `datasette_libfec/static/gen/` - Generated frontend assets (gitignored)
+
+## How Vite Integration Works
+
+### Development Mode
+When `DATASETTE_LIBFEC_VITE_PATH=http://localhost:5177/` is set:
+```html
+<script type="module" src="http://localhost:5177/@vite/client"></script>
+<script type="module" src="http://localhost:5177/src/import.tsx"></script>
+```
+Changes to frontend files hot reload without page refresh.
+
+### Production Mode
+Without env var, reads `manifest.json` to inject hashed bundles:
+```html
+<link rel="stylesheet" href="/-/static-plugins/datasette_libfec/gen/import-[hash].css">
+<script type="module" src="/-/static-plugins/datasette_libfec/gen/import-[hash].js"></script>
+```
+
+## Dependencies
+
+**Backend:**
+- datasette >= 1.0a23
+- datasette-plugin-router
+- pydantic >= 2.0
+- libfec (external CLI tool, must be in PATH)
+
+**Frontend:**
+- preact ^10.28.0
+- vite ^7.2.4
+- @preact/preset-vite ^2.10.1
+- openapi-fetch ^0.15.0
+- typescript ~5.9.3
+
+## Testing
+
+Run tests with:
+```bash
+pytest
+```
+
+Test file: `tests/test_libfec.py`
