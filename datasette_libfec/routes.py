@@ -31,13 +31,18 @@ class ImportResponse(BaseModel):
 # RSS Watcher models and endpoints (defined before general import endpoint)
 async def rss_watch_loop(output_db: str, state: Optional[str], cover_only: bool, interval: int):
     """Background task that runs RSS watch periodically"""
+    import time
     while rss_watcher_state.running:
         try:
+            rss_watcher_state.currently_syncing = True
             print(f"Running RSS watch: state={state}, cover_only={cover_only}, db={output_db}")
             await libfec_client.rss_watch(output_db, state, cover_only)
             print(f"RSS watch completed, sleeping {interval} seconds")
         except Exception as e:
             print(f"RSS watch error: {e}")
+        finally:
+            rss_watcher_state.currently_syncing = False
+            rss_watcher_state.next_sync_time = time.time() + interval
         await asyncio.sleep(interval)
 
 
@@ -85,11 +90,14 @@ async def rss_start(datasette, params: Body[RssStartParams]):
         }, status=400)
 
     # Start the background task
+    import time
     rss_watcher_state.running = True
     rss_watcher_state.state = params.state
     rss_watcher_state.cover_only = params.cover_only
     rss_watcher_state.interval = params.interval
     rss_watcher_state.output_db = output_db.path
+    rss_watcher_state.next_sync_time = time.time()
+    rss_watcher_state.currently_syncing = False
     rss_watcher_state.task = asyncio.create_task(
         rss_watch_loop(output_db.path, params.state, params.cover_only, params.interval)
     )
@@ -144,7 +152,9 @@ async def rss_status(datasette):
             "state": rss_watcher_state.state,
             "cover_only": rss_watcher_state.cover_only,
             "interval": rss_watcher_state.interval,
-            "output_db": rss_watcher_state.output_db
+            "output_db": rss_watcher_state.output_db,
+            "next_sync_time": rss_watcher_state.next_sync_time,
+            "currently_syncing": rss_watcher_state.currently_syncing
         }
 
     return Response.json(

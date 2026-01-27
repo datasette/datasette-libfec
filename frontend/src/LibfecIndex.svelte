@@ -18,6 +18,8 @@
     cover_only: boolean;
     interval: number;
     output_db?: string;
+    next_sync_time?: number;
+    currently_syncing?: boolean;
   }
 
   let rssRunning = $state(false);
@@ -26,9 +28,27 @@
   let rssCoverOnly = $state(true);
   let rssInterval = $state(60);
   let rssConfig = $state<RssConfig | null>(null);
+  let nextSyncLabel = $state<string>("");
 
   onMount(() => {
     loadRssStatus();
+
+    // Update next sync label every second
+    const labelInterval = setInterval(() => {
+      updateNextSyncLabel();
+    }, 1000);
+
+    // Poll RSS status every 5 seconds to keep sync status fresh
+    const statusInterval = setInterval(() => {
+      if (rssRunning) {
+        loadRssStatus();
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(labelInterval);
+      clearInterval(statusInterval);
+    };
   });
 
   async function loadRssStatus() {
@@ -42,11 +62,47 @@
           if (config.state) rssState = config.state;
           rssCoverOnly = config.cover_only;
           rssInterval = config.interval;
+          updateNextSyncLabel();
         }
       }
     } catch (error) {
       console.error('Error loading RSS status:', error);
     }
+  }
+
+  function formatDuration(seconds: number): string {
+    if (seconds < 0) return "soon";
+    if (seconds < 60) return `in ${Math.floor(seconds)} second${Math.floor(seconds) === 1 ? '' : 's'}`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    if (minutes < 60) {
+      return `in ${minutes} minute${minutes === 1 ? '' : 's'}${remainingSeconds > 0 ? ` ${remainingSeconds} second${remainingSeconds === 1 ? '' : 's'}` : ''}`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `in ${hours} hour${hours === 1 ? '' : 's'}${remainingMinutes > 0 ? ` ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'}` : ''}`;
+  }
+
+  function updateNextSyncLabel() {
+    if (!rssConfig || !rssRunning) {
+      nextSyncLabel = "";
+      return;
+    }
+
+    if (rssConfig.currently_syncing) {
+      nextSyncLabel = "currently running";
+      return;
+    }
+
+    if (!rssConfig.next_sync_time) {
+      nextSyncLabel = "starting soon";
+      return;
+    }
+
+    const now = Date.now() / 1000;
+    const remaining = rssConfig.next_sync_time - now;
+
+    nextSyncLabel = formatDuration(remaining);
   }
 
   async function onSubmit(e: SubmitEvent) {
@@ -93,6 +149,7 @@
       if (data) {
         rssRunning = data.running;
         rssConfig = data.config as unknown as RssConfig | null;
+        updateNextSyncLabel();
         alert(`RSS watcher started successfully`);
       }
     } finally {
@@ -111,6 +168,7 @@
       if (data) {
         rssRunning = data.running;
         rssConfig = null;
+        nextSyncLabel = "";
         alert(`RSS watcher stopped`);
       }
     } finally {
@@ -225,6 +283,9 @@
             <div>State: {rssConfig.state || 'All states'}</div>
             <div>Cover Only: {rssConfig.cover_only ? 'Yes' : 'No'}</div>
             <div>Interval: {rssConfig.interval} seconds</div>
+            {#if nextSyncLabel}
+              <div class="next-sync">Next sync: {nextSyncLabel}</div>
+            {/if}
           </div>
         {/if}
         <button
@@ -419,6 +480,14 @@
 
   .rss-config div {
     margin: 0.5em 0;
+  }
+
+  .rss-config .next-sync {
+    color: #0066cc;
+    font-weight: 600;
+    margin-top: 1em;
+    padding-top: 0.75em;
+    border-top: 1px solid #e0e0e0;
   }
 
   small {

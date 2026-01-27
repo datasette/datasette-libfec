@@ -49,7 +49,7 @@ class LibfecClient:
 
     async def rss_watch(self, output_db: str, state: Optional[str] = None, cover_only: bool = True):
         """Run single RSS watch command (async - won't block event loop)"""
-        args = ['rss', '--since', '1 day']
+        args = ['rss', '--since', '1 hour']
         if cover_only:
             args.append('--cover-only')
         args.extend(['-x', output_db])
@@ -67,3 +67,5 @@ class RssWatcherState:
         self.state: Optional[str] = None
         self.cover_only = True
         self.output_db: Optional[str] = None
+        self.next_sync_time: Optional[float] = None
+        self.currently_syncing = False
