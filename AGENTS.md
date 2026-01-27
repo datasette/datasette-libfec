@@ -5,7 +5,7 @@ A Datasette plugin for importing FEC (Federal Election Commission) data using th
 ## Architecture
 
 **Backend:** Python + Datasette + datasette-plugin-router
-**Frontend:** TypeScript + Preact + Vite (with HMR support)
+**Frontend:** TypeScript + Svelte 5 + Vite (with HMR support)
 **Build Tool:** Just (Justfile)
 
 ## Backend
@@ -24,17 +24,16 @@ A Datasette plugin for importing FEC (Federal Election Commission) data using th
 - `GET /-/libfec` - Main UI page
 - `POST /-/api/libfec` - Import FEC data (accepts committee/candidate/contest + ID + cycle)
 
-**Vite Integration:**
-Uses environment variable `DATASETTE_LIBFEC_VITE_PATH` to switch between:
-- **Dev mode:** Points to Vite dev server for HMR
-- **Production:** Reads `manifest.json` for hashed assets
+**Environment Variables:**
+- `DATASETTE_LIBFEC_VITE_PATH` - Points to Vite dev server for HMR (e.g., `http://localhost:5177/`)
+- `DATASETTE_LIBFEC_BIN_PATH` - Override path to libfec binary (defaults to `<python-executable-dir>/libfec`)
 
 ## Frontend
 
 **Location:** `frontend/`
 
 **Tech Stack:**
-- Preact 10 (lightweight React alternative)
+- Svelte 5 (with runes/signals for reactivity)
 - TypeScript with strict mode
 - Vite 7 for dev server + bundling
 - openapi-fetch for type-safe API calls
@@ -43,18 +42,21 @@ Uses environment variable `DATASETTE_LIBFEC_VITE_PATH` to switch between:
 ```
 frontend/
 ├── src/
-│   ├── import.tsx        # Main entry point (form UI)
-│   └── api.d.ts          # Generated OpenAPI types
-├── vite.config.ts        # Vite config (builds to ../datasette_libfec/)
-├── tsconfig.json         # TS project references
-├── tsconfig.app.json     # App code config
-└── package.json          # Scripts: dev, build, preview, check
+│   ├── LibfecIndex.svelte # Main index page component
+│   └── index_view.ts      # Entry point (mounts component)
+├── api.d.ts               # Generated OpenAPI types
+├── vite.config.ts         # Vite config (builds to ../datasette_libfec/)
+├── svelte.config.js       # Svelte preprocessor config
+├── tsconfig.json          # TS project references
+├── tsconfig.app.json      # App code config
+└── package.json           # Scripts: dev, build, preview, check
 ```
 
 **Vite Config:**
-- Entry: `src/import.tsx`
+- Entry: `src/index_view.ts`
 - Output: `../datasette_libfec/static/gen/` + `manifest.json`
 - Dev server: Port 5177 with CORS for localhost:8004
+- Plugin: @sveltejs/vite-plugin-svelte
 
 ## Development Workflow
 
@@ -124,11 +126,12 @@ Without env var, reads `manifest.json` to inject hashed bundles:
 - libfec (external CLI tool, must be in PATH)
 
 **Frontend:**
-- preact ^10.28.0
+- svelte ^5.43.8
 - vite ^7.2.4
-- @preact/preset-vite ^2.10.1
+- @sveltejs/vite-plugin-svelte ^6.2.1
 - openapi-fetch ^0.15.0
 - typescript ~5.9.3
+- svelte-check ^4.3.4
 
 ## Testing
 

@@ -1,6 +1,6 @@
 # Frontend Development
 
-This frontend is built with Vite + Preact and supports Hot Module Replacement (HMR) for development.
+This frontend is built with Vite + Svelte 5 and supports Hot Module Replacement (HMR) for development.
 
 ## Development Workflow
 
@@ -45,7 +45,7 @@ When `DATASETTE_LIBFEC_VITE_PATH` environment variable is set, the plugin inject
 
 ```html
 <script type="module" src="http://localhost:5177/@vite/client"></script>
-<script type="module" src="http://localhost:5177/src/import.tsx"></script>
+<script type="module" src="http://localhost:5177/src/index_view.ts"></script>
 ```
 
 This enables Hot Module Replacement - as you edit files, Vite will update them in the browser without a full page reload.
@@ -80,11 +80,13 @@ This will update `frontend/api.d.ts` with type-safe API types for the backend en
 ```
 frontend/
 ├── src/
-│   ├── import.tsx    # Main entry point
-│   └── api.d.ts      # Generated OpenAPI types
-├── vite.config.ts    # Vite configuration
-├── tsconfig.json     # TypeScript project references
-├── tsconfig.app.json # App code TypeScript config
-├── tsconfig.node.json # Build config TypeScript config
-└── package.json      # Dependencies and scripts
+│   ├── LibfecIndex.svelte # Main index page component
+│   └── index_view.ts      # Entry point (mounts component)
+├── api.d.ts               # Generated OpenAPI types
+├── vite.config.ts         # Vite configuration
+├── svelte.config.js       # Svelte preprocessor config
+├── tsconfig.json          # TypeScript project references
+├── tsconfig.app.json      # App code TypeScript config
+├── tsconfig.node.json     # Build config TypeScript config
+└── package.json           # Dependencies and scripts
 ```

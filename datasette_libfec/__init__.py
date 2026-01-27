@@ -7,13 +7,18 @@ from typing import Literal, Optional
 import sys
 import subprocess
 import json
+import os
 
 
 
 
 class LibfecClient:
     def __init__(self):
-        self.libfec_path = Path(sys.executable).parent / 'libfec'
+        bin_path = os.environ.get("DATASETTE_LIBFEC_BIN_PATH")
+        if bin_path:
+            self.libfec_path = Path(bin_path)
+        else:
+            self.libfec_path = Path(sys.executable).parent / 'libfec'
 
     def _run_libfec_command(self, args):
         print(args)
@@ -100,7 +105,6 @@ def register_routes():
 
 @hookimpl
 def extra_template_vars(datasette):
-    import os
     vite_path = os.environ.get("DATASETTE_LIBFEC_VITE_PATH")
     if vite_path:
         pass
