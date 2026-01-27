@@ -18,11 +18,21 @@ A Datasette plugin for importing FEC (Federal Election Commission) data using th
 
 **Key Classes:**
 - `LibfecClient` - Wrapper for libfec CLI tool
+- `RssWatcherState` - State management for background RSS watching
 - `ManifestChunk` - Pydantic model for Vite manifest parsing
+
+**Background Tasks:**
+- RSS watcher runs as asyncio task, checking FEC RSS feed at configurable intervals
+- Supports state filtering (e.g., "CA" for California only)
+- Cover-only mode for faster imports
+- Configurable check interval (default: 60 seconds)
 
 **API Endpoints:**
 - `GET /-/libfec` - Main UI page
 - `POST /-/api/libfec` - Import FEC data (accepts committee/candidate/contest + ID + cycle)
+- `POST /-/api/libfec/rss/start` - Start RSS watcher (state, cover_only, interval)
+- `POST /-/api/libfec/rss/stop` - Stop RSS watcher
+- `GET /-/api/libfec/rss/status` - Get RSS watcher status
 
 **Environment Variables:**
 - `DATASETTE_LIBFEC_VITE_PATH` - Points to Vite dev server for HMR (e.g., `http://localhost:5177/`)

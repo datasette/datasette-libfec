@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import createClient from "openapi-fetch";
   import type { paths } from "../api.d.ts";
 
@@ -10,6 +11,43 @@
   let kind: TargetKind = $state("committee");
   let id = $state("C00498667");
   let cycle = $state(2026);
+
+  // RSS Watcher state
+  interface RssConfig {
+    state: string | null;
+    cover_only: boolean;
+    interval: number;
+    output_db?: string;
+  }
+
+  let rssRunning = $state(false);
+  let rssLoading = $state(false);
+  let rssState = $state("CA");
+  let rssCoverOnly = $state(true);
+  let rssInterval = $state(60);
+  let rssConfig = $state<RssConfig | null>(null);
+
+  onMount(() => {
+    loadRssStatus();
+  });
+
+  async function loadRssStatus() {
+    try {
+      const {data, error} = await client.GET("/-/api/libfec/rss/status");
+      if (data && !error) {
+        rssRunning = data.running;
+        if (data.config) {
+          const config = data.config as unknown as RssConfig;
+          rssConfig = config;
+          if (config.state) rssState = config.state;
+          rssCoverOnly = config.cover_only;
+          rssInterval = config.interval;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading RSS status:', error);
+    }
+  }
 
   async function onSubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -35,6 +73,48 @@
       alert(`Import started successfully: ${JSON.stringify(data)}`);
     } finally {
       isLoading = false;
+    }
+  }
+
+  async function startRssWatcher() {
+    rssLoading = true;
+    try {
+      const {data, error} = await client.POST("/-/api/libfec/rss/start", {
+        body: {
+          state: rssState || null,
+          cover_only: rssCoverOnly,
+          interval: rssInterval
+        }
+      });
+      if (error) {
+        alert(`Error starting RSS watcher: ${JSON.stringify(error)}`);
+        return;
+      }
+      if (data) {
+        rssRunning = data.running;
+        rssConfig = data.config as unknown as RssConfig | null;
+        alert(`RSS watcher started successfully`);
+      }
+    } finally {
+      rssLoading = false;
+    }
+  }
+
+  async function stopRssWatcher() {
+    rssLoading = true;
+    try {
+      const {data, error} = await client.POST("/-/api/libfec/rss/stop", {});
+      if (error) {
+        alert(`Error stopping RSS watcher: ${JSON.stringify(error)}`);
+        return;
+      }
+      if (data) {
+        rssRunning = data.running;
+        rssConfig = null;
+        alert(`RSS watcher stopped`);
+      }
+    } finally {
+      rssLoading = false;
     }
   }
 </script>
@@ -132,6 +212,82 @@
       </button>
     </form>
   </section>
+
+  <section class="rss-section">
+    <h2>Watch RSS Feed</h2>
+    <p>Automatically watch and import new FEC filings from the RSS feed.</p>
+
+    {#if rssRunning}
+      <div class="rss-status running">
+        <strong>RSS Watcher is Running</strong>
+        {#if rssConfig}
+          <div class="rss-config">
+            <div>State: {rssConfig.state || 'All states'}</div>
+            <div>Cover Only: {rssConfig.cover_only ? 'Yes' : 'No'}</div>
+            <div>Interval: {rssConfig.interval} seconds</div>
+          </div>
+        {/if}
+        <button
+          type="button"
+          class="button-danger"
+          disabled={rssLoading}
+          onclick={stopRssWatcher}
+        >
+          {rssLoading ? "Stopping..." : "Stop Watcher"}
+        </button>
+      </div>
+    {:else}
+      <form onsubmit={(e) => { e.preventDefault(); startRssWatcher(); }}>
+        <div class="form-group">
+          <label for="rss-state">
+            State (optional)
+          </label>
+          <input
+            type="text"
+            id="rss-state"
+            name="rss-state"
+            bind:value={rssState}
+            placeholder="e.g. CA (leave empty for all states)"
+            maxlength="2"
+          />
+          <small>Two-letter state code, or leave empty for all states</small>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input
+              type="checkbox"
+              bind:checked={rssCoverOnly}
+            />
+            Cover pages only
+          </label>
+          <small>Import only cover pages (faster)</small>
+        </div>
+
+        <div class="form-group">
+          <label for="rss-interval">
+            Check Interval (seconds)
+          </label>
+          <input
+            type="number"
+            id="rss-interval"
+            name="rss-interval"
+            bind:value={rssInterval}
+            min="1"
+            max="3600"
+          />
+          <small>How often to check the RSS feed (default: 60 seconds)</small>
+        </div>
+
+        <button
+          type="submit"
+          disabled={rssLoading}
+        >
+          {rssLoading ? "Starting..." : "Start RSS Watcher"}
+        </button>
+      </form>
+    {/if}
+  </section>
 </main>
 
 <style>
@@ -208,5 +364,76 @@
   button:disabled {
     background: #999;
     cursor: not-allowed;
+  }
+
+  .button-danger {
+    background: #dc3545;
+    padding: 0.75em 1.5em;
+    font-size: 1em;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .button-danger:hover:not(:disabled) {
+    background: #c82333;
+  }
+
+  .button-danger:disabled {
+    background: #999;
+    cursor: not-allowed;
+  }
+
+  .rss-section {
+    margin: 3em 0;
+    padding-top: 2em;
+    border-top: 2px solid #ddd;
+  }
+
+  .rss-status {
+    padding: 1.5em;
+    border-radius: 4px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+  }
+
+  .rss-status.running {
+    background: #d4edda;
+    border-color: #c3e6cb;
+  }
+
+  .rss-status strong {
+    display: block;
+    margin-bottom: 1em;
+    font-size: 1.1em;
+  }
+
+  .rss-config {
+    margin: 1em 0;
+    padding: 1em;
+    background: white;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+
+  .rss-config div {
+    margin: 0.5em 0;
+  }
+
+  small {
+    display: block;
+    color: #666;
+    font-size: 0.85em;
+    margin-top: 0.25em;
+  }
+
+  input[type="checkbox"] {
+    margin-right: 0.5em;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    max-width: 200px;
   }
 </style>
