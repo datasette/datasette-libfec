@@ -87,14 +87,26 @@ async def rss_watch_loop(output_db: str, state: Optional[str], cover_only: bool,
     import time
     while rss_watcher_state.running:
         try:
-            rss_watcher_state.currently_syncing = True
+            # Reset progress state before each sync
+            rss_watcher_state.phase = "idle"
+            rss_watcher_state.exported_count = 0
+            rss_watcher_state.total_count = 0
+            rss_watcher_state.current_filing_id = None
+            rss_watcher_state.error_message = None
+            rss_watcher_state.error_code = None
+            rss_watcher_state.error_data = None
+
             print(f"Running RSS watch: state={state}, cover_only={cover_only}, db={output_db}")
-            await libfec_client.rss_watch(output_db, state, cover_only)
+            # Use RPC-based method with progress tracking
+            await libfec_client.rss_watch_with_progress(
+                output_db, state, cover_only, rss_watcher_state
+            )
             print(f"RSS watch completed, sleeping {interval} seconds")
         except Exception as e:
             print(f"RSS watch error: {e}")
+            rss_watcher_state.phase = "error"
+            rss_watcher_state.error_message = str(e)
         finally:
-            rss_watcher_state.currently_syncing = False
             rss_watcher_state.next_sync_time = time.time() + interval
         await asyncio.sleep(interval)
 
@@ -152,7 +164,7 @@ async def rss_start(datasette, params: Body[RssStartParams]):
     rss_watcher_state.next_sync_time = time.time()
     rss_watcher_state.currently_syncing = False
     rss_watcher_state.task = asyncio.create_task(
-        rss_watch_loop(output_db.path, params.state, params.cover_only, params.interval)
+        rss_watch_loop(output_db.path, None if params.state == "" else params.state, params.cover_only, params.interval)
     )
 
     return Response.json(
@@ -177,6 +189,13 @@ async def rss_stop(datasette):
             "message": "RSS watcher is not running",
             "running": False
         }, status=400)
+
+    # Cancel RPC sync if in progress
+    if rss_watcher_state.rpc_client:
+        try:
+            await rss_watcher_state.rpc_client.sync_cancel()
+        except Exception as e:
+            print(f"Error canceling RPC sync: {e}")
 
     # Stop the background task
     rss_watcher_state.running = False
@@ -207,7 +226,18 @@ async def rss_status(datasette):
             "interval": rss_watcher_state.interval,
             "output_db": rss_watcher_state.output_db,
             "next_sync_time": rss_watcher_state.next_sync_time,
-            "currently_syncing": rss_watcher_state.currently_syncing
+            "currently_syncing": rss_watcher_state.currently_syncing,
+            # Progress tracking fields
+            "phase": rss_watcher_state.phase,
+            "exported_count": rss_watcher_state.exported_count,
+            "total_count": rss_watcher_state.total_count,
+            "current_filing_id": rss_watcher_state.current_filing_id,
+            "feed_title": rss_watcher_state.feed_title,
+            "feed_last_modified": rss_watcher_state.feed_last_modified,
+            "error_message": rss_watcher_state.error_message,
+            "error_code": rss_watcher_state.error_code,
+            "error_data": rss_watcher_state.error_data,
+            "sync_start_time": rss_watcher_state.sync_start_time
         }
 
     return Response.json(

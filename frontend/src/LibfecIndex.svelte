@@ -21,15 +21,31 @@
     output_db?: string;
     next_sync_time?: number;
     currently_syncing?: boolean;
+    // Progress tracking fields
+    phase?: string;
+    exported_count?: number;
+    total_count?: number;
+    current_filing_id?: string;
+    feed_title?: string;
+    feed_last_modified?: string;
+    error_message?: string;
+    error_code?: number;
+    error_data?: string;
+    sync_start_time?: number;
   }
 
   let rssRunning = $state(false);
   let rssLoading = $state(false);
-  let rssState = $state("CA");
+  let rssState = $state("");
   let rssCoverOnly = $state(true);
   let rssInterval = $state(60);
   let rssConfig = $state<RssConfig | null>(null);
   let nextSyncLabel = $state<string>("");
+
+  function isActivelySyncing(): boolean {
+    return rssConfig != null &&
+           (rssConfig.phase === 'fetching' || rssConfig.phase === 'exporting');
+  }
 
   onMount(() => {
     loadRssStatus();
@@ -39,12 +55,12 @@
       updateNextSyncLabel();
     }, 1000);
 
-    // Poll RSS status every 5 seconds to keep sync status fresh
+    // Adaptive polling: 1s during active sync, 5s otherwise
     const statusInterval = setInterval(() => {
       if (rssRunning) {
         loadRssStatus();
       }
-    }, 5000);
+    }, isActivelySyncing() ? 1000 : 5000);
 
     return () => {
       clearInterval(labelInterval);
@@ -82,6 +98,35 @@
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return `in ${hours} hour${hours === 1 ? '' : 's'}${remainingMinutes > 0 ? ` ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'}` : ''}`;
+  }
+
+  function formatProgress(): string {
+    if (!rssConfig) return "Unknown";
+
+    const phase = rssConfig.phase || "idle";
+
+    switch (phase) {
+      case "idle":
+        return "Idle";
+      case "fetching":
+        return "Fetching RSS feed...";
+      case "exporting":
+        if (rssConfig.total_count && rssConfig.total_count > 0) {
+          const count = rssConfig.exported_count || 0;
+          const total = rssConfig.total_count;
+          const percent = Math.round((count / total) * 100);
+          return `Exporting: ${count}/${total} filings (${percent}%)`;
+        }
+        return "Exporting filings...";
+      case "complete":
+        return "Sync complete";
+      case "canceled":
+        return "Sync canceled";
+      case "error":
+        return "Error";
+      default:
+        return phase;
+    }
   }
 
   function updateNextSyncLabel() {
@@ -286,6 +331,43 @@
                 <div class="next-sync">Next sync: {nextSyncLabel}</div>
               {/if}
             </div>
+
+            <!-- Progress Section -->
+            <div class="progress-section">
+              <div class="progress-status">
+                Status: <strong>{formatProgress()}</strong>
+              </div>
+
+              {#if rssConfig.phase === 'exporting' && rssConfig.total_count && rssConfig.total_count > 0}
+                <div class="progress-bar">
+                  <div
+                    class="progress-fill"
+                    style="width: {((rssConfig.exported_count || 0) / rssConfig.total_count) * 100}%"
+                  ></div>
+                </div>
+              {/if}
+
+              {#if rssConfig.current_filing_id}
+                <div class="current-filing">
+                  Processing: <code>{rssConfig.current_filing_id}</code>
+                </div>
+              {/if}
+
+              {#if rssConfig.error_message}
+                <div class="error-message">
+                  <strong>Error:</strong> {rssConfig.error_message}
+                  {#if rssConfig.error_code}
+                    <div class="error-code">Code: {rssConfig.error_code}</div>
+                  {/if}
+                  {#if rssConfig.error_data}
+                    <div class="error-details">
+                      <strong>Details:</strong>
+                      <pre>{rssConfig.error_data}</pre>
+                    </div>
+                  {/if}
+                </div>
+              {/if}
+            </div>
           {/if}
           <button
             type="button"
@@ -354,9 +436,6 @@
 </main>
 
 <style>
-  .import-section {
-  }
-
   .form-group {
     margin-bottom: 1.5em;
   }
@@ -446,9 +525,6 @@
     cursor: not-allowed;
   }
 
-  .rss-section {
-  }
-
   .rss-status {
     padding: 1.5em;
     border-radius: 4px;
@@ -501,5 +577,77 @@
   input[type="number"] {
     width: 100%;
     max-width: 200px;
+  }
+
+  .progress-section {
+    margin: 1.5em 0;
+    padding: 1em;
+    background: white;
+    border-radius: 4px;
+  }
+
+  .progress-status {
+    font-size: 0.95em;
+    margin-bottom: 0.75em;
+  }
+
+  .progress-bar {
+    height: 24px;
+    background: #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 0.75em 0;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0066cc, #0052a3);
+    transition: width 0.3s ease;
+  }
+
+  .current-filing {
+    margin-top: 0.75em;
+    font-size: 0.9em;
+    color: #495057;
+  }
+
+  .current-filing code {
+    background: #f8f9fa;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .error-message {
+    margin-top: 0.75em;
+    padding: 0.75em;
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .error-code {
+    font-size: 0.85em;
+    margin-top: 0.25em;
+    opacity: 0.8;
+  }
+
+  .error-details {
+    margin-top: 0.5em;
+    font-size: 0.85em;
+  }
+
+  .error-details pre {
+    margin: 0.25em 0 0 0;
+    padding: 0.5em;
+    background: #fff;
+    border: 1px solid #f5c6cb;
+    border-radius: 3px;
+    overflow-x: auto;
+    font-size: 0.9em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
   }
 </style>

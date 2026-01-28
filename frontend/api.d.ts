@@ -37,54 +37,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/api/libfec": {
+    "/-/libfec/filing/{filing_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        post: {
+        get: {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    filing_id: string;
+                };
                 cookie?: never;
             };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Kind */
-                        kind: "committee" | "candidate" | "contest";
-                        /** Id */
-                        id: string;
-                        /**
-                         * Cycle
-                         * @default 2026
-                         */
-                        cycle?: number;
-                    };
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content: {
-                        "application/json": {
-                            /** Status */
-                            status: string;
-                            /** Message */
-                            message: string;
-                        };
-                    };
+                    content?: never;
                 };
             };
         };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -252,6 +233,60 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/-/api/libfec": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Kind */
+                        kind: "committee" | "candidate" | "contest";
+                        /** Id */
+                        id: string;
+                        /**
+                         * Cycle
+                         * @default 2026
+                         */
+                        cycle?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Status */
+                            status: string;
+                            /** Message */
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
