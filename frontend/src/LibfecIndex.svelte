@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import createClient from "openapi-fetch";
   import type { paths } from "../api.d.ts";
+  import RecentFilings from './RecentFilings.svelte';
 
   const client = createClient<paths>({ baseUrl: "/" });
 
@@ -349,6 +350,8 @@
       </form>
     {/if}
   </section>
+
+  <RecentFilings />
 </main>
 
 <style>
