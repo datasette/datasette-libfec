@@ -181,182 +181,180 @@
 <main>
   <h1>FEC Data Import</h1>
   <p>Import Federal Election Commission data into your Datasette database.</p>
-
-  <section class="import-section">
-    <h2>Import Data</h2>
-    <p>Select the type of FEC data you want to import, provide an ID, and choose an election cycle.</p>
-
-    <form onsubmit={onSubmit}>
-      <!-- Target Kind Selection -->
-      <div class="form-group">
-        <fieldset>
-          <legend>Import Type</legend>
-          <div class="radio-group">
-            <div>
-              <input
-                id="committee"
-                name="kind"
-                type="radio"
-                value="committee"
-                bind:group={kind}
-              />
-              <label for="committee">
-                Committee
-              </label>
-            </div>
-            <div>
-              <input
-                id="candidate"
-                name="kind"
-                type="radio"
-                value="candidate"
-                bind:group={kind}
-              />
-              <label for="candidate">
-                Candidate
-              </label>
-            </div>
-            <div>
-              <input
-                id="contest"
-                name="kind"
-                type="radio"
-                value="contest"
-                bind:group={kind}
-              />
-              <label for="contest">
-                Contest
-              </label>
-            </div>
-          </div>
-        </fieldset>
-      </div>
-
-      <!-- ID Input -->
-      <div class="form-group">
-        <label for="id">
-          ID
-        </label>
-        <input
-          type="text"
-          id="id"
-          name="id"
-          bind:value={id}
-          placeholder="e.g. C00498667"
-        />
-      </div>
-
-      <!-- Cycle Input -->
-      <div class="form-group">
-        <label for="cycle">
-          Election Cycle
-        </label>
-        <select
-          id="cycle"
-          name="cycle"
-          bind:value={cycle}
-        >
-          <option value={2026}>2026</option>
-          <option value={2024}>2024</option>
-          <option value={2022}>2022</option>
-        </select>
-      </div>
-
-      <!-- Submit Button -->
-      <button
-        type="submit"
-        disabled={isLoading}
-      >
-        {isLoading ? "Importing..." : "Import Data"}
-      </button>
-    </form>
-  </section>
-
-  <section class="rss-section">
-    <h2>Watch RSS Feed</h2>
-    <p>Automatically watch and import new FEC filings from the RSS feed.</p>
-
-    {#if rssRunning}
-      <div class="rss-status running">
-        <strong>RSS Watcher is Running</strong>
-        {#if rssConfig}
-          <div class="rss-config">
-            <div>State: {rssConfig.state || 'All states'}</div>
-            <div>Cover Only: {rssConfig.cover_only ? 'Yes' : 'No'}</div>
-            <div>Interval: {rssConfig.interval} seconds</div>
-            {#if nextSyncLabel}
-              <div class="next-sync">Next sync: {nextSyncLabel}</div>
-            {/if}
-          </div>
-        {/if}
-        <button
-          type="button"
-          class="button-danger"
-          disabled={rssLoading}
-          onclick={stopRssWatcher}
-        >
-          {rssLoading ? "Stopping..." : "Stop Watcher"}
-        </button>
-      </div>
-    {:else}
-      <form onsubmit={(e) => { e.preventDefault(); startRssWatcher(); }}>
+  <div style="display: flex; grid-gap: 1rem;">
+    <section class="import-section">
+      <h2>Import Data</h2>
+      <form onsubmit={onSubmit}>
+        <!-- Target Kind Selection -->
         <div class="form-group">
-          <label for="rss-state">
-            State (optional)
+          <fieldset>
+            <legend>Import Type</legend>
+            <div class="radio-group">
+              <div>
+                <input
+                  id="committee"
+                  name="kind"
+                  type="radio"
+                  value="committee"
+                  bind:group={kind}
+                />
+                <label for="committee">
+                  Committee
+                </label>
+              </div>
+              <div>
+                <input
+                  id="candidate"
+                  name="kind"
+                  type="radio"
+                  value="candidate"
+                  bind:group={kind}
+                />
+                <label for="candidate">
+                  Candidate
+                </label>
+              </div>
+              <div>
+                <input
+                  id="contest"
+                  name="kind"
+                  type="radio"
+                  value="contest"
+                  bind:group={kind}
+                />
+                <label for="contest">
+                  Contest
+                </label>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+
+        <!-- ID Input -->
+        <div class="form-group">
+          <label for="id">
+            ID
           </label>
           <input
             type="text"
-            id="rss-state"
-            name="rss-state"
-            bind:value={rssState}
-            placeholder="e.g. CA (leave empty for all states)"
-            maxlength="2"
+            id="id"
+            name="id"
+            bind:value={id}
+            placeholder="e.g. C00498667"
           />
-          <small>Two-letter state code, or leave empty for all states</small>
         </div>
 
+        <!-- Cycle Input -->
         <div class="form-group">
-          <label>
-            <input
-              type="checkbox"
-              bind:checked={rssCoverOnly}
-            />
-            Cover pages only
+          <label for="cycle">
+            Election Cycle
           </label>
-          <small>Import only cover pages (faster)</small>
+          <select
+            id="cycle"
+            name="cycle"
+            bind:value={cycle}
+          >
+            <option value={2026}>2026</option>
+            <option value={2024}>2024</option>
+            <option value={2022}>2022</option>
+          </select>
         </div>
 
-        <div class="form-group">
-          <label for="rss-interval">
-            Check Interval (seconds)
-          </label>
-          <input
-            type="number"
-            id="rss-interval"
-            name="rss-interval"
-            bind:value={rssInterval}
-            min="1"
-            max="3600"
-          />
-          <small>How often to check the RSS feed (default: 60 seconds)</small>
-        </div>
-
+        <!-- Submit Button -->
         <button
           type="submit"
-          disabled={rssLoading}
+          disabled={isLoading}
         >
-          {rssLoading ? "Starting..." : "Start RSS Watcher"}
+          {isLoading ? "Importing..." : "Import Data"}
         </button>
       </form>
-    {/if}
-  </section>
+    </section>
+
+    <section class="rss-section">
+      <h2>Watch RSS Feed</h2>
+      <p>Automatically watch and import new FEC filings from the RSS feed.</p>
+
+      {#if rssRunning}
+        <div class="rss-status running">
+          <strong>RSS Watcher is Running</strong>
+          {#if rssConfig}
+            <div class="rss-config">
+              <div>State: {rssConfig.state || 'All states'}</div>
+              <div>Cover Only: {rssConfig.cover_only ? 'Yes' : 'No'}</div>
+              <div>Interval: {rssConfig.interval} seconds</div>
+              {#if nextSyncLabel}
+                <div class="next-sync">Next sync: {nextSyncLabel}</div>
+              {/if}
+            </div>
+          {/if}
+          <button
+            type="button"
+            class="button-danger"
+            disabled={rssLoading}
+            onclick={stopRssWatcher}
+          >
+            {rssLoading ? "Stopping..." : "Stop Watcher"}
+          </button>
+        </div>
+      {:else}
+        <form onsubmit={(e) => { e.preventDefault(); startRssWatcher(); }}>
+          <div class="form-group">
+            <label for="rss-state">
+              State (optional)
+            </label>
+            <input
+              type="text"
+              id="rss-state"
+              name="rss-state"
+              bind:value={rssState}
+              placeholder="e.g. CA (leave empty for all states)"
+              maxlength="2"
+            />
+            <small>Two-letter state code, or leave empty for all states</small>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input
+                type="checkbox"
+                bind:checked={rssCoverOnly}
+              />
+              Cover pages only
+            </label>
+            <small>Import only cover pages (faster)</small>
+          </div>
+
+          <div class="form-group">
+            <label for="rss-interval">
+              Check Interval (seconds)
+            </label>
+            <input
+              type="number"
+              id="rss-interval"
+              name="rss-interval"
+              bind:value={rssInterval}
+              min="1"
+              max="3600"
+            />
+            <small>How often to check the RSS feed (default: 60 seconds)</small>
+          </div>
+
+          <button
+            type="submit"
+            disabled={rssLoading}
+          >
+            {rssLoading ? "Starting..." : "Start RSS Watcher"}
+          </button>
+        </form>
+      {/if}
+    </section>
+  </div>
 
   <RecentFilings />
 </main>
 
 <style>
   .import-section {
-    margin: 2em 0;
   }
 
   .form-group {
@@ -371,7 +369,6 @@
 
   .form-group input[type="text"],
   .form-group select {
-    width: 100%;
     max-width: 400px;
     padding: 0.5em;
     font-size: 1em;
@@ -450,9 +447,6 @@
   }
 
   .rss-section {
-    margin: 3em 0;
-    padding-top: 2em;
-    border-top: 2px solid #ddd;
   }
 
   .rss-status {

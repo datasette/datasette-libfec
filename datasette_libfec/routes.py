@@ -10,11 +10,64 @@ rss_watcher_state = RssWatcherState()
 router = Router()
 
 
-@router.GET("/-/libfec")
+@router.GET("/-/libfec$")
 async def libfec_page(datasette):
     return Response.html(
         await datasette.render_template(
             "libfec.html",
+        )
+    )
+
+
+@router.GET("/-/libfec/filing/(?P<filing_id>[^/]+)")
+async def filing_detail_page(datasette, filing_id: str):
+    # Fetch filing data from database
+    db = datasette.get_database()
+    filing_row = await db.execute(
+        "SELECT * FROM libfec_filings WHERE filing_id = ?", [filing_id]
+    )
+    filing = filing_row.first()
+
+    if not filing:
+        return Response.html("<h1>Filing not found</h1>", status=404)
+
+    # Fetch form-specific data based on cover_record_form
+    form_type = filing["cover_record_form"]
+    form_data = None
+
+    # Map form types to their table names
+    form_table_map = {
+        "F1": "libfec_F1",
+        "F1S": "libfec_F1S",
+        "F2": "libfec_F2",
+        "F3": "libfec_F3",
+        "F3P": "libfec_F3P",
+        "F3S": "libfec_F3S",
+        "F3X": "libfec_F3X",
+        "F24": "libfec_F24",
+        "F6": "libfec_F6",
+        "F99": "libfec_F99",
+    }
+
+    table_name = form_table_map.get(form_type)
+    if table_name:
+        try:
+            form_row = await db.execute(
+                f"SELECT * FROM {table_name} WHERE filing_id = ?", [filing_id]
+            )
+            form_data = form_row.first()
+        except Exception as e:
+            print(f"Error fetching form data from {table_name}: {e}")
+            form_data = None
+
+    return Response.html(
+        await datasette.render_template(
+            "filing_detail.html",
+            {
+                "filing_id": filing_id,
+                "filing": dict(filing),
+                "form_data": dict(form_data) if form_data else None,
+            }
         )
     )
 

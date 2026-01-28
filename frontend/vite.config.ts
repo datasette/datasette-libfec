@@ -16,6 +16,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: "src/index_view.ts",
+        filing_detail: "src/filing_detail_view.ts",
       },
     },
   },

@@ -70,13 +70,13 @@
         </thead>
         <tbody>
           {#each filings as filing}
-            <tr>
+            <tr class="filing-row" onclick={() => window.location.href = `/-/libfec/filing/${filing.filing_id}`}>
               <td class="filing-id">{filing.filing_id}</td>
               <td>{filing.filer_name}</td>
               <td>{filing.report_code}</td>
               <td class="form-type">{filing.cover_record_form}</td>
-              <td>{formatDate(filing.coverage_from_date)}</td>
-              <td>{formatDate(filing.coverage_through_date)}</td>
+              <td>{filing.coverage_from_date ? formatDate(filing.coverage_from_date) : ''}</td>
+              <td>{filing.coverage_through_date ? formatDate(filing.coverage_through_date) : ''}</td>
             </tr>
           {/each}
         </tbody>
@@ -163,6 +163,10 @@
     border-bottom: none;
   }
 
+  .filing-row {
+    cursor: pointer;
+  }
+
   tbody tr:hover {
     background: #f8f9fa;
   }
@@ -176,11 +180,5 @@
   .form-type {
     font-family: monospace;
     font-weight: 600;
-  }
-
-  .state {
-    font-family: monospace;
-    text-transform: uppercase;
-    font-weight: 500;
   }
 </style>

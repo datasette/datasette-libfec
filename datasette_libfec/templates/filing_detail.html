@@ -1,0 +1,19 @@
+
+{% extends "base.html" %}
+
+{% block title %}Filing {{ filing_id }}{% endblock %}
+
+{% block extra_head %}
+{{ datasette_libfec_vite_entry("src/filing_detail_view.ts") | safe }}
+<script>
+  window.filingData = {{ filing | tojson }};
+  window.formData = {{ form_data | tojson }};
+  window.filingId = {{ filing_id | tojson }};
+</script>
+{% endblock %}
+
+{% block content %}
+
+<div id="filing-detail-root"></div>
+
+{% endblock %}
