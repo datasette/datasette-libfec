@@ -1,0 +1,129 @@
+{
+  "$defs": {
+    "Filing": {
+      "properties": {
+        "filing_id": {
+          "title": "Filing Id",
+          "type": "string"
+        },
+        "cover_record_form": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cover Record Form"
+        },
+        "filer_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filer Id"
+        },
+        "filer_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filer Name"
+        },
+        "coverage_from_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverage From Date"
+        },
+        "coverage_through_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverage Through Date"
+        }
+      },
+      "required": [
+        "filing_id"
+      ],
+      "title": "Filing",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "filing_id": {
+      "title": "Filing Id",
+      "type": "string"
+    },
+    "filing": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Filing"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "form_data": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Form Data"
+    },
+    "database_name": {
+      "title": "Database Name",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
+    }
+  },
+  "required": [
+    "filing_id",
+    "database_name"
+  ],
+  "title": "FilingDetailPageData",
+  "type": "object"
+}

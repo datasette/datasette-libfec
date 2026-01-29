@@ -6,7 +6,11 @@ from typing import Optional
 import json
 import os
 
-from .routes import router
+# Import route modules to trigger route registration on the shared router
+# pylint: disable=unused-import
+from . import routes_rss, routes_export, routes_search, routes_exports, routes_pages
+from .router import router
+_ = routes_rss, routes_export, routes_search, routes_exports, routes_pages
 
 # https://vite.dev/guide/backend-integration.html
 class ManifestChunk(BaseModel):

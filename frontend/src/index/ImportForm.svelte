@@ -1,0 +1,423 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import createClient from "openapi-fetch";
+  import type { paths } from "../../api.d.ts";
+  import SearchMultiSelect, { type SelectedItem } from '../components/SearchMultiSelect.svelte';
+
+  const client = createClient<paths>({ baseUrl: "/" });
+
+  interface ExportStatus {
+    export_id?: string;
+    phase?: string;
+    completed?: number;
+    total?: number;
+    current?: string;
+    current_filing_id?: string;
+    total_exported?: number;
+    warnings?: string[];
+    error_message?: string;
+  }
+
+  let isLoading = $state(false);
+  let cycle = $state(2026);
+  let selectedSearchItems = $state<SelectedItem[]>([]);
+  let exportStatus = $state<ExportStatus | null>(null);
+  let exportRunning = $state(false);
+
+  function isActivelyExporting(): boolean {
+    console.log(exportStatus?.phase);
+    return exportStatus != null &&
+           (exportStatus.phase === 'sourcing' ||
+            exportStatus.phase === 'downloading_bulk' ||
+            exportStatus.phase === 'exporting');
+  }
+
+  onMount(() => {
+    loadExportStatus();
+    if(!isActivelyExporting()) return;
+    const statusInterval = setInterval(loadExportStatus, 1000);
+
+    return () => {
+      clearInterval(statusInterval);
+    };
+    
+  });
+
+  async function loadExportStatus() {
+    try {
+      const {data, error} = await client.GET("/-/api/libfec/export/status");
+      if (data && !error) {
+        exportStatus = data as unknown as ExportStatus;
+        exportRunning = isActivelyExporting();
+      }
+    } catch (error) {
+      console.error('Error loading export status:', error);
+    }
+  }
+
+  function formatProgress(): string {
+    if (!exportStatus) return "Idle";
+
+    const phase = exportStatus.phase || "idle";
+
+    switch (phase) {
+      case "idle":
+        return "Idle";
+      case "sourcing":
+        if (exportStatus.total && exportStatus.total > 0) {
+          const count = exportStatus.completed || 0;
+          const total = exportStatus.total;
+          return `Finding filings: ${count}/${total}`;
+        }
+        return "Finding filings...";
+      case "downloading_bulk":
+        if (exportStatus.total && exportStatus.total > 0) {
+          const count = exportStatus.completed || 0;
+          const total = exportStatus.total;
+          const percent = Math.round((count / total) * 100);
+          return `Downloading: ${count}/${total} (${percent}%)`;
+        }
+        return "Downloading bulk data...";
+      case "exporting":
+        if (exportStatus.total && exportStatus.total > 0) {
+          const count = exportStatus.completed || 0;
+          const total = exportStatus.total;
+          const percent = Math.round((count / total) * 100);
+          return `Exporting: ${count}/${total} filings (${percent}%)`;
+        }
+        return "Exporting filings...";
+      case "complete":
+        return `Complete: ${exportStatus.total_exported || 0} filings exported`;
+      case "canceled":
+        return "Export canceled";
+      case "error":
+        return "Error";
+      default:
+        return phase;
+    }
+  }
+
+  function handleSearchSelection(items: SelectedItem[]) {
+    selectedSearchItems = items;
+  }
+
+  async function onSubmit(e: SubmitEvent) {
+    e.preventDefault();
+
+    if (selectedSearchItems.length === 0) {
+      alert('Please select a candidate or committee to import.');
+      return;
+    }
+
+    isLoading = true;
+    try {
+      const filingIds = selectedSearchItems.map(item => item.id);
+      const {error} = await client.POST("/-/api/libfec/export/start", {
+        body: {
+          filings: filingIds,
+          cycle: cycle
+        }
+      });
+      if (error) {
+        alert(`Error starting import: ${JSON.stringify(error)}`);
+        return;
+      }
+      // Clear search selection after starting import
+      selectedSearchItems = [];
+      // Immediately load status
+      await loadExportStatus();
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  async function cancelExport() {
+    isLoading = true;
+    try {
+      const {error} = await client.POST("/-/api/libfec/export/cancel", {});
+      if (error) {
+        alert(`Error canceling export: ${JSON.stringify(error)}`);
+        return;
+      }
+      await loadExportStatus();
+    } finally {
+      isLoading = false;
+    }
+  }
+</script>
+
+<section class="import-section">
+  <h2>Import Data</h2>
+
+  {#if exportRunning && exportStatus}
+    <div class="export-status running">
+      <strong>Export in Progress</strong>
+
+      <div class="progress-section">
+        <div class="progress-status">
+          Status: <strong>{formatProgress()}</strong>
+        </div>
+
+        {#if exportStatus.total && exportStatus.total > 0}
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              style="width: {((exportStatus.completed || 0) / exportStatus.total) * 100}%"
+            ></div>
+          </div>
+        {/if}
+
+        {#if exportStatus.phase === 'downloading_bulk' && exportStatus.current}
+          <div class="current-item">
+            Downloading: <code>{exportStatus.current}</code>
+          </div>
+        {/if}
+
+        {#if exportStatus.phase === 'exporting' && exportStatus.current_filing_id}
+          <div class="current-item">
+            Processing: <code>{exportStatus.current_filing_id}</code>
+          </div>
+        {/if}
+
+        {#if exportStatus.phase === 'error' && exportStatus.error_message}
+          <div class="error-message">
+            <strong>Error:</strong> {exportStatus.error_message}
+          </div>
+        {/if}
+      </div>
+
+      <button
+        type="button"
+        class="button-danger"
+        disabled={isLoading}
+        onclick={cancelExport}
+      >
+        {isLoading ? "Canceling..." : "Cancel Export"}
+      </button>
+    </div>
+  {:else}
+    {#if exportStatus && exportStatus.phase === 'complete'}
+      <div class="export-status complete">
+        <strong>Last Export Complete</strong>
+        <div class="complete-info">
+          Exported {exportStatus.total_exported || 0} filings
+          {#if exportStatus.warnings && exportStatus.warnings.length > 0}
+            <div class="warnings">
+              <strong>Warnings ({exportStatus.warnings.length}):</strong>
+              <ul>
+                {#each exportStatus.warnings as warning}
+                  <li>{warning}</li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
+
+    {#if exportStatus && exportStatus.phase === 'error'}
+      <div class="export-status error">
+        <strong>Last Export Failed</strong>
+        <div class="error-message">
+          {exportStatus.error_message || 'Unknown error'}
+        </div>
+      </div>
+    {/if}
+
+    <form onsubmit={onSubmit}>
+      <!-- Search Component -->
+      <div class="form-group">
+        <div style="font-weight: bold; margin-bottom: 0.5em;">Search for Candidate or Committee</div>
+        <SearchMultiSelect
+          bind:selected={selectedSearchItems}
+          cycle={cycle}
+          placeholder="Search for candidate or committee..."
+          onselect={handleSearchSelection}
+        />
+        <small>Search by name and select a candidate or committee to import</small>
+      </div>
+
+      <!-- Cycle Input -->
+      <div class="form-group">
+        <label for="cycle">
+          Election Cycle
+        </label>
+        <select
+          id="cycle"
+          name="cycle"
+          bind:value={cycle}
+        >
+          <option value={2026}>2026</option>
+          <option value={2024}>2024</option>
+          <option value={2022}>2022</option>
+        </select>
+      </div>
+
+      <!-- Submit Button -->
+      <button
+        type="submit"
+        disabled={isLoading || selectedSearchItems.length === 0}
+      >
+        {isLoading ? "Starting..." : "Import Data"}
+      </button>
+    </form>
+  {/if}
+</section>
+
+<style>
+  .import-section {
+    flex: 1;
+  }
+
+  .form-group {
+    margin-bottom: 1.5em;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+  }
+
+  .form-group select {
+    max-width: 400px;
+    padding: 0.5em;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  small {
+    display: block;
+    color: #666;
+    font-size: 0.85em;
+    margin-top: 0.5em;
+  }
+
+  button {
+    padding: 0.75em 1.5em;
+    font-size: 1em;
+    background: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  button:hover:not(:disabled) {
+    background: #0052a3;
+  }
+
+  button:disabled {
+    background: #999;
+    cursor: not-allowed;
+  }
+
+  .button-danger {
+    background: #dc3545;
+  }
+
+  .button-danger:hover:not(:disabled) {
+    background: #c82333;
+  }
+
+  .export-status {
+    padding: 1.5em;
+    border-radius: 4px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    margin-bottom: 1.5em;
+  }
+
+  .export-status.running {
+    background: #cce5ff;
+    border-color: #b8daff;
+  }
+
+  .export-status.complete {
+    background: #d4edda;
+    border-color: #c3e6cb;
+  }
+
+  .export-status.error {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+  }
+
+  .export-status strong {
+    display: block;
+    margin-bottom: 1em;
+    font-size: 1.1em;
+  }
+
+  .progress-section {
+    margin: 1em 0;
+    padding: 1em;
+    background: white;
+    border-radius: 4px;
+  }
+
+  .progress-status {
+    font-size: 0.95em;
+    margin-bottom: 0.75em;
+  }
+
+  .progress-bar {
+    height: 24px;
+    background: #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 0.75em 0;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0066cc, #0052a3);
+    transition: width 0.3s ease;
+  }
+
+  .current-item {
+    margin-top: 0.75em;
+    font-size: 0.9em;
+    color: #495057;
+  }
+
+  .current-item code {
+    background: #f8f9fa;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .complete-info {
+    padding: 0.5em 0;
+  }
+
+  .warnings {
+    margin-top: 1em;
+    padding: 0.75em;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .warnings ul {
+    margin: 0.5em 0 0 1.5em;
+    padding: 0;
+  }
+
+  .warnings li {
+    margin: 0.25em 0;
+  }
+
+  .error-message {
+    margin-top: 0.75em;
+    padding: 0.75em;
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+</style>

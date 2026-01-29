@@ -143,6 +143,90 @@ Without env var, reads `manifest.json` to inject hashed bundles:
 - typescript ~5.9.3
 - svelte-check ^4.3.4
 
+## Page Data Pattern
+
+All pages use a single unified template (`libfec_base.html`) with typed page data:
+
+**1. Python Pydantic model** (`datasette_libfec/page_data.py`):
+```python
+class CandidatePageData(BaseModel):
+    candidate_id: str
+    cycle: int
+    candidate: Candidate | None = None
+    filings: list[Filing] = []
+    error: str | None = None
+```
+
+**2. Route uses unified template** (`routes_pages.py`):
+```python
+page_data = CandidatePageData(candidate_id=candidate_id, ...)
+return Response.html(
+    await datasette.render_template(
+        "libfec_base.html",
+        {
+            "page_title": f"{candidate_name} - Candidate",
+            "entrypoint": "src/candidate_view.ts",
+            "page_data": page_data.model_dump(),
+        }
+    )
+)
+```
+
+**3. Unified template** (`templates/libfec_base.html`):
+```html
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block extra_head %}
+{{ datasette_libfec_vite_entry(entrypoint) | safe }}
+<script type="application/json" id="pageData">{{ page_data | tojson }}</script>
+{% endblock %}
+{% block content %}
+<div id="app-root"></div>
+{% endblock %}
+```
+
+**4. TypeScript types** (`frontend/src/page_data/CandidatePageData.types.ts`):
+```typescript
+export interface CandidatePageData {
+  candidate_id: string;
+  cycle: number;
+  candidate?: Candidate | null;
+  ...
+}
+```
+
+**5. Shared loader** (`frontend/src/page_data/load.ts`):
+```typescript
+export function loadPageData<T>(): T {
+  const script = document.querySelector<HTMLScriptElement>('#pageData');
+  return JSON.parse(script.textContent || '{}') as T;
+}
+```
+
+**6. Svelte component** (`Candidate.svelte`):
+```typescript
+import type { CandidatePageData } from "./page_data/CandidatePageData.types.ts";
+import { loadPageData } from "./page_data/load.ts";
+
+const pageData = loadPageData<CandidatePageData>();
+```
+
+**7. Entry point** (`candidate_view.ts`):
+```typescript
+const app = mount(Candidate, {
+  target: document.getElementById('app-root')!,
+})
+```
+
+**Key conventions:**
+- All pages use `libfec_base.html` template
+- Page data is embedded as `<script type="application/json" id="pageData">`
+- All entry points mount to `#app-root`
+- Use snake_case for all property names (Python and JS/TS)
+- TypeScript types mirror Pydantic models
+- Handle optional fields with `?.` and `??` in Svelte templates
+- Run `npm run check` to verify TypeScript correctness
+
 ## Testing
 
 Run tests with:

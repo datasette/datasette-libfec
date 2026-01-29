@@ -4,7 +4,7 @@
     filingId: string;
   }
 
-  let { formData, filingId }: Props = $props();
+  let { formData, filingId: _filingId }: Props = $props();
 </script>
 
 <div class="form-content">
@@ -18,7 +18,15 @@
         <dd>{formData.committee_name || 'N/A'}</dd>
 
         <dt>Committee ID:</dt>
-        <dd>{formData.filer_committee_id_number || 'N/A'}</dd>
+        <dd>
+          {#if formData.filer_committee_id_number}
+            <a href="/-/libfec/committee/{formData.filer_committee_id_number}">
+              {formData.filer_committee_id_number}
+            </a>
+          {:else}
+            N/A
+          {/if}
+        </dd>
 
         <dt>Committee Type:</dt>
         <dd>{formData.committee_type || 'N/A'}</dd>
@@ -61,22 +69,36 @@
 
           {#if formData.candidate_id_number}
             <dt>Candidate ID:</dt>
-            <dd>{formData.candidate_id_number}</dd>
+            <dd>
+              <a href="/-/libfec/candidate/{formData.candidate_id_number}">
+                {formData.candidate_id_number}
+              </a>
+            </dd>
           {/if}
 
-          {#if formData.candidate_office}
-            <dt>Office:</dt>
-            <dd>{formData.candidate_office}</dd>
-          {/if}
+          {#if formData.candidate_office && formData.candidate_state}
+            <dt>Contest:</dt>
+            <dd>
+              <a href="/-/libfec/contest?state={formData.candidate_state}&office={formData.candidate_office}{formData.candidate_district ? '&district=' + formData.candidate_district : ''}">
+                {formData.candidate_state} {formData.candidate_office === 'H' ? 'House' : formData.candidate_office === 'S' ? 'Senate' : formData.candidate_office === 'P' ? 'President' : formData.candidate_office}
+                {#if formData.candidate_district}District {formData.candidate_district}{/if}
+              </a>
+            </dd>
+          {:else}
+            {#if formData.candidate_office}
+              <dt>Office:</dt>
+              <dd>{formData.candidate_office}</dd>
+            {/if}
 
-          {#if formData.candidate_state}
-            <dt>State:</dt>
-            <dd>{formData.candidate_state}</dd>
-          {/if}
+            {#if formData.candidate_state}
+              <dt>State:</dt>
+              <dd>{formData.candidate_state}</dd>
+            {/if}
 
-          {#if formData.candidate_district}
-            <dt>District:</dt>
-            <dd>{formData.candidate_district}</dd>
+            {#if formData.candidate_district}
+              <dt>District:</dt>
+              <dd>{formData.candidate_district}</dd>
+            {/if}
           {/if}
 
           {#if formData.party_code}

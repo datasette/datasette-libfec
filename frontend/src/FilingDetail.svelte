@@ -1,4 +1,6 @@
 <script lang="ts">
+  import type { FilingDetailPageData } from "./page_data/FilingDetailPageData.types.ts";
+  import { loadPageData } from "./page_data/load.ts";
   import F1 from './forms/F1.svelte';
   import F1S from './forms/F1S.svelte';
   import F2 from './forms/F2.svelte';
@@ -10,10 +12,13 @@
   import F6 from './forms/F6.svelte';
   import F99 from './forms/F99.svelte';
 
-  // Get data passed from the server
-  const filingData = (window as any).filingData;
-  const formData = (window as any).formData;
-  const filingId = (window as any).filingId;
+  const pageData = loadPageData<FilingDetailPageData>();
+
+  // Aliases for easier access
+  const filingData = pageData.filing;
+  const formData = pageData.form_data;
+  const filingId = pageData.filing_id;
+  const databaseName = pageData.database_name;
 
   // Determine report type for conditional rendering
   const reportType = filingData?.cover_record_form || 'Unknown';
@@ -22,13 +27,36 @@
 <div class="filing-detail">
   <div class="header">
     <h1>FEC-{filingId}</h1>
+    {#if filingData?.filer_name}
+      <div class="filer-info">
+        <span class="filer-name">
+          {#if filingData.filer_id}
+            <a href="/-/libfec/committee/{filingData.filer_id}">
+              {filingData.filer_name}
+            </a>
+          {:else}
+            {filingData.filer_name}
+          {/if}
+        </span>
+        {#if filingData.filer_id}
+          <span class="filer-id">({filingData.filer_id})</span>
+        {/if}
+      </div>
+    {/if}
     <div class="links">
       <a
-        href="https://docquery.fec.gov/cgi-bin/forms/{filingId}"
+        href="/{databaseName}/libfec_filings/{filingId}"
         target="_blank"
         rel="noopener noreferrer"
       >
-        View on fec.gov →
+        Row page
+      </a>
+      <a
+        href="https://docquery.fec.gov/cgi-bin/forms/{filingData?.filer_id ?? ''}/{filingId}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        fec.gov →
       </a>
       <a
         href="https://docquery.fec.gov/dcdev/posted/{filingId}.fec"
@@ -36,13 +64,6 @@
         rel="noopener noreferrer"
       >
         .fec file
-      </a>
-      <a
-        href="/tmp/libfec_filings/{filingId}"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Row page
       </a>
     </div>
   </div>
@@ -82,11 +103,11 @@
             <dd>{filingId}</dd>
 
             <dt>Filer Name:</dt>
-            <dd>{filingData.filer_name || 'N/A'}</dd>
+            <dd>{filingData?.filer_name || 'N/A'}</dd>
 
             <dt>Coverage Period:</dt>
             <dd>
-              {#if filingData.coverage_from_date && filingData.coverage_through_date}
+              {#if filingData?.coverage_from_date && filingData?.coverage_through_date}
                 {filingData.coverage_from_date} to {filingData.coverage_through_date}
               {:else}
                 N/A
@@ -117,7 +138,26 @@
 
   .header h1 {
     font-size: 2rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .filer-info {
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+  }
+
+  .filer-name a {
+    color: #0066cc;
+    text-decoration: none;
+  }
+
+  .filer-name a:hover {
+    text-decoration: underline;
+  }
+
+  .filer-id {
+    color: #666;
+    font-size: 0.9rem;
   }
 
   .links {

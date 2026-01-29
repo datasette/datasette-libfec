@@ -1,8 +1,15 @@
 
 
-types: 
+types-routes: 
   uv run python -c 'from datasette_libfec import router; import json;print(json.dumps(router.openapi_document_json()))' \
     | npx --prefix frontend openapi-typescript > frontend/api.d.ts
+
+types-pagedata:
+  uv run scripts/typegen-pagedata.py
+
+types:
+  just types-routes
+  just types-pagedata
 
 types-watch:
   watchexec \

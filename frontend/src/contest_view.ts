@@ -1,7 +1,7 @@
 import { mount } from 'svelte'
-import FilingDetail from "./FilingDetail.svelte";
+import Contest from './Contest.svelte'
 
-const app = mount(FilingDetail, {
+const app = mount(Contest, {
   target: document.getElementById('app-root')!,
 })
 

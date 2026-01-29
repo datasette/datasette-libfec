@@ -1,0 +1,13 @@
+{
+  "properties": {
+    "database_name": {
+      "title": "Database Name",
+      "type": "string"
+    }
+  },
+  "required": [
+    "database_name"
+  ],
+  "title": "IndexPageData",
+  "type": "object"
+}

@@ -1,6 +1,12 @@
 <script lang="ts">
-  import { query } from './api';
-  import { useQuery } from './useQuery.svelte';
+  import { query } from '../api';
+  import { useQuery } from '../useQuery.svelte';
+
+  interface Props {
+    databaseName: string;
+  }
+
+  let { databaseName }: Props = $props();
 
   interface Filing {
     filing_id: string;
@@ -13,7 +19,7 @@
   }
 
   const queryResp = useQuery<Filing[]>(() =>
-    query("tmp", `
+    query(databaseName, `
       SELECT
         *
       FROM

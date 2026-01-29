@@ -6,10 +6,11 @@ import asyncio
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from .libfec_rpc_client import LibfecRpcClient
+    from .libfec_export_rpc_client import LibfecExportRpcClient
 
 
 class LibfecClient:
@@ -19,14 +20,6 @@ class LibfecClient:
             self.libfec_path = Path(bin_path)
         else:
             self.libfec_path = Path(sys.executable).parent / 'libfec'
-
-    def _run_libfec_command(self, args):
-        """Synchronous command execution"""
-        print(args)
-        result = subprocess.run([str(self.libfec_path)] + args, capture_output=True, text=True)
-        if result.returncode != 0:
-            raise Exception(f"libfec error: {result.stderr}")
-        return result.stdout
 
     async def _run_libfec_command_async(self, args):
         """Async command execution - doesn't block event loop"""
@@ -48,8 +41,6 @@ class LibfecClient:
         return await self._run_libfec_command_async([
             'export', committee_id,
             '--election', str(cycle),
-            '--form-type', 'F3',
-            #'--form-type', 'F1',
             '-o', output_db
           ])
 
@@ -156,6 +147,96 @@ class LibfecClient:
                     pass
             watcher_state.rpc_client = None
 
+    async def export_with_progress(
+        self,
+        output_db: str,
+        filings: Optional[List[str]],
+        cycle: Optional[int],
+        cover_only: bool,
+        clobber: bool,
+        export_state: ExportState
+    ) -> None:
+        """
+        Run export using RPC mode with real-time progress tracking.
+
+        Updates export_state with progress information from RPC notifications.
+        """
+        from .libfec_export_rpc_client import LibfecExportRpcClient, RpcError
+
+        # Reset progress state
+        export_state.phase = "idle"
+        export_state.completed = 0
+        export_state.total = 0
+        export_state.current_filing_id = None
+        export_state.current = None
+        export_state.total_exported = None
+        export_state.warnings = []
+        export_state.error_message = None
+        export_state.export_start_time = time.time()
+
+        # Use RPC mode
+        rpc_client = LibfecExportRpcClient(str(self.libfec_path), output_db)
+        export_state.rpc_client = rpc_client
+
+        def on_progress(notification: dict) -> None:
+            """Progress callback - updates export_state from RPC notifications"""
+            method = notification.get("method")
+            params = notification.get("params", {})
+
+            if method == "export/progress":
+                export_state.phase = params.get("phase", "idle")
+                export_state.completed = params.get("completed", 0)
+                export_state.total = params.get("total", 0)
+                export_state.current_filing_id = params.get("current_filing_id")
+                export_state.current = params.get("current")
+                export_state.total_exported = params.get("total_exported")
+                export_state.warnings = params.get("warnings", [])
+                if params.get("error_message"):
+                    export_state.error_message = params["error_message"]
+
+        try:
+            export_state.running = True
+            await rpc_client.start_process()
+
+            result = await rpc_client.export_start(
+                filings=filings,
+                cycle=cycle,
+                cover_only=cover_only,
+                clobber=clobber,
+                progress_callback=on_progress
+            )
+
+            # Mark as complete
+            export_state.phase = "complete"
+            print(f"Export complete: {result}")
+
+        except RpcError as e:
+            export_state.phase = "error"
+            export_state.error_message = str(e.data) if e.data else e.message
+            print(f"RPC error: {e}")
+
+        except asyncio.TimeoutError:
+            export_state.phase = "error"
+            export_state.error_message = "Export timed out after 5 minutes"
+            print("Export timeout")
+
+        except Exception as e:
+            export_state.phase = "error"
+            export_state.error_message = str(e)
+            print(f"Export error: {e}")
+
+        finally:
+            export_state.running = False
+            try:
+                await rpc_client.shutdown()
+            except Exception as e:
+                print(f"Error shutting down RPC client: {e}")
+                try:
+                    await rpc_client.terminate()
+                except Exception:
+                    pass
+            export_state.rpc_client = None
+
 
 # RSS watcher state
 class RssWatcherState:
@@ -181,3 +262,22 @@ class RssWatcherState:
         self.error_data: Optional[str] = None
         self.sync_start_time: Optional[float] = None
         self.rpc_client: Optional["LibfecRpcClient"] = None
+
+
+# Export state
+class ExportState:
+    def __init__(self):
+        self.export_id: Optional[str] = None
+        self.running = False
+
+        # Progress tracking fields for export RPC mode
+        self.phase: str = "idle"  # idle|sourcing|downloading_bulk|exporting|complete|canceled|error
+        self.completed: int = 0
+        self.total: int = 0
+        self.current_filing_id: Optional[str] = None
+        self.current: Optional[str] = None  # For bulk download phase
+        self.total_exported: Optional[int] = None
+        self.warnings: List[str] = []
+        self.error_message: Optional[str] = None
+        self.export_start_time: Optional[float] = None
+        self.rpc_client: Optional["LibfecExportRpcClient"] = None

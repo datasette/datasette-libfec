@@ -4,7 +4,7 @@
     filingId: string;
   }
 
-  let { formData, filingId }: Props = $props();
+  let { formData, filingId: _filingId }: Props = $props();
 </script>
 
 <div class="form-content">
@@ -15,7 +15,15 @@
       <h4>Committee Information</h4>
       <dl>
         <dt>Committee ID:</dt>
-        <dd>{formData.filer_committee_id_number || 'N/A'}</dd>
+        <dd>
+          {#if formData.filer_committee_id_number}
+            <a href="/-/libfec/committee/{formData.filer_committee_id_number}">
+              {formData.filer_committee_id_number}
+            </a>
+          {:else}
+            N/A
+          {/if}
+        </dd>
 
         {#if formData.date_general_election}
           <dt>General Election Date:</dt>

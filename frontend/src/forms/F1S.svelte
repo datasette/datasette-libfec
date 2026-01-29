@@ -4,7 +4,7 @@
     filingId: string;
   }
 
-  let { formData, filingId }: Props = $props();
+  let { formData, filingId: _filingId }: Props = $props();
 </script>
 
 <div class="form-content">
@@ -15,7 +15,15 @@
       <h4>Committee Information</h4>
       <dl>
         <dt>Committee ID:</dt>
-        <dd>{formData.filer_committee_id_number || 'N/A'}</dd>
+        <dd>
+          {#if formData.filer_committee_id_number}
+            <a href="/-/libfec/committee/{formData.filer_committee_id_number}">
+              {formData.filer_committee_id_number}
+            </a>
+          {:else}
+            N/A
+          {/if}
+        </dd>
       </dl>
     </div>
 
@@ -28,7 +36,11 @@
 
           {#if formData.joint_fund_participant_committee_id_number}
             <dt>Committee ID:</dt>
-            <dd>{formData.joint_fund_participant_committee_id_number}</dd>
+            <dd>
+              <a href="/-/libfec/committee/{formData.joint_fund_participant_committee_id_number}">
+                {formData.joint_fund_participant_committee_id_number}
+              </a>
+            </dd>
           {/if}
         </dl>
       </div>
@@ -45,7 +57,11 @@
 
           {#if formData.affiliated_committee_id_number}
             <dt>Committee ID:</dt>
-            <dd>{formData.affiliated_committee_id_number}</dd>
+            <dd>
+              <a href="/-/libfec/committee/{formData.affiliated_committee_id_number}">
+                {formData.affiliated_committee_id_number}
+              </a>
+            </dd>
           {/if}
 
           {#if formData.affiliated_last_name}
@@ -61,7 +77,11 @@
 
           {#if formData.affiliated_candidate_id_number}
             <dt>Candidate ID:</dt>
-            <dd>{formData.affiliated_candidate_id_number}</dd>
+            <dd>
+              <a href="/-/libfec/candidate/{formData.affiliated_candidate_id_number}">
+                {formData.affiliated_candidate_id_number}
+              </a>
+            </dd>
           {/if}
 
           {#if formData.affiliated_relationship_code}
