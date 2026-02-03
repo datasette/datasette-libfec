@@ -1,11 +1,50 @@
 from pydantic import BaseModel
 from datasette import Response
 from datasette_plugin_router import Body
-from typing import Optional
+from typing import Optional, List, Literal
 import asyncio
 
 from .router import router
 from .state import libfec_client, rss_watcher_state
+
+
+class RssSyncRecord(BaseModel):
+    sync_id: int
+    sync_uuid: str
+    created_at: str
+    completed_at: Optional[str] = None
+    since_filter: Optional[str] = None
+    preset_filter: Optional[str] = None
+    form_type_filter: Optional[str] = None
+    committee_filter: Optional[str] = None
+    state_filter: Optional[str] = None
+    party_filter: Optional[str] = None
+    total_feed_items: Optional[int] = None
+    filtered_items: Optional[int] = None
+    new_filings_count: int
+    exported_count: int
+    cover_only: bool
+    status: str
+    error_message: Optional[str] = None
+
+
+class RssSyncFilingRecord(BaseModel):
+    filing_id: str
+    rss_pub_date: Optional[str] = None
+    rss_title: Optional[str] = None
+    committee_id: Optional[str] = None
+    form_type: Optional[str] = None
+    coverage_from: Optional[str] = None
+    coverage_through: Optional[str] = None
+    report_type: Optional[str] = None
+    export_success: bool
+    export_message: Optional[str] = None
+
+
+class ApiRssSyncsListResponse(BaseModel):
+    status: Literal['success']
+    syncs: List[RssSyncRecord]
+    message: Optional[str] = None
 
 
 class RssStartParams(BaseModel):
@@ -184,3 +223,189 @@ async def rss_status(datasette):
             config=config
         ).model_dump()
     )
+
+
+@router.GET("/-/api/libfec/rss/syncs$", output=ApiRssSyncsListResponse)
+async def list_rss_syncs(datasette):
+    """List all RSS sync operations from the metadata tables"""
+    db = datasette.get_database()
+
+    # Check if the table exists
+    try:
+        tables = await db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='libfec_rss_syncs'")
+        if not tables.first():
+            return Response.json({
+                "status": "success",
+                "syncs": [],
+                "message": "No RSS syncs yet"
+            })
+    except Exception as e:
+        return Response.json({
+            "status": "error",
+            "message": f"Database error: {str(e)}"
+        }, status=500)
+
+    try:
+        syncs_result = await db.execute("""
+            SELECT
+                sync_id,
+                sync_uuid,
+                created_at,
+                completed_at,
+                since_filter,
+                preset_filter,
+                form_type_filter,
+                committee_filter,
+                state_filter,
+                party_filter,
+                total_feed_items,
+                filtered_items,
+                new_filings_count,
+                exported_count,
+                cover_only,
+                status,
+                error_message
+            FROM libfec_rss_syncs
+            ORDER BY created_at DESC
+            LIMIT 50
+        """)
+
+        syncs = []
+        for row in syncs_result.rows:
+            syncs.append({
+                "sync_id": row[0],
+                "sync_uuid": row[1],
+                "created_at": row[2],
+                "completed_at": row[3],
+                "since_filter": row[4],
+                "preset_filter": row[5],
+                "form_type_filter": row[6],
+                "committee_filter": row[7],
+                "state_filter": row[8],
+                "party_filter": row[9],
+                "total_feed_items": row[10],
+                "filtered_items": row[11],
+                "new_filings_count": row[12],
+                "exported_count": row[13],
+                "cover_only": bool(row[14]),
+                "status": row[15],
+                "error_message": row[16]
+            })
+        return Response.json(ApiRssSyncsListResponse(
+            status="success",
+            syncs=syncs
+        ).model_dump_json())
+
+    except Exception as e:
+        return Response.json({
+            "status": "error",
+            "message": f"Failed to fetch RSS syncs: {str(e)}"
+        }, status=500)
+
+
+@router.GET("/-/api/libfec/rss/syncs/(?P<sync_id>\\d+)")
+async def get_rss_sync_detail(datasette, sync_id: str):
+    """Get detailed information about a specific RSS sync"""
+    db = datasette.get_database()
+    sync_id_int = int(sync_id)
+
+    try:
+        # Get sync record
+        sync_result = await db.execute("""
+            SELECT
+                sync_id,
+                sync_uuid,
+                created_at,
+                completed_at,
+                since_filter,
+                preset_filter,
+                form_type_filter,
+                committee_filter,
+                state_filter,
+                party_filter,
+                total_feed_items,
+                filtered_items,
+                new_filings_count,
+                exported_count,
+                cover_only,
+                status,
+                error_message
+            FROM libfec_rss_syncs
+            WHERE sync_id = ?
+        """, [sync_id_int])
+
+        sync_row = sync_result.first()
+        if not sync_row:
+            return Response.json({
+                "status": "error",
+                "message": "RSS sync not found"
+            }, status=404)
+
+        sync = {
+            "sync_id": sync_row[0],
+            "sync_uuid": sync_row[1],
+            "created_at": sync_row[2],
+            "completed_at": sync_row[3],
+            "since_filter": sync_row[4],
+            "preset_filter": sync_row[5],
+            "form_type_filter": sync_row[6],
+            "committee_filter": sync_row[7],
+            "state_filter": sync_row[8],
+            "party_filter": sync_row[9],
+            "total_feed_items": sync_row[10],
+            "filtered_items": sync_row[11],
+            "new_filings_count": sync_row[12],
+            "exported_count": sync_row[13],
+            "cover_only": bool(sync_row[14]),
+            "status": sync_row[15],
+            "error_message": sync_row[16]
+        }
+
+        # Get filings for this sync
+        filings = []
+        try:
+            filings_result = await db.execute("""
+                SELECT
+                    filing_id,
+                    rss_pub_date,
+                    rss_title,
+                    committee_id,
+                    form_type,
+                    coverage_from,
+                    coverage_through,
+                    report_type,
+                    export_success,
+                    export_message
+                FROM libfec_rss_filings
+                WHERE sync_id = ?
+                ORDER BY rss_pub_date DESC
+            """, [sync_id_int])
+
+            for row in filings_result.rows:
+                filings.append({
+                    "filing_id": row[0],
+                    "rss_pub_date": row[1],
+                    "rss_title": row[2],
+                    "committee_id": row[3],
+                    "form_type": row[4],
+                    "coverage_from": row[5],
+                    "coverage_through": row[6],
+                    "report_type": row[7],
+                    "export_success": bool(row[8]),
+                    "export_message": row[9]
+                })
+        except Exception:
+            # Table might not exist
+            pass
+
+        return Response.json({
+            "status": "success",
+            "sync": sync,
+            "filings": filings
+        })
+
+    except Exception as e:
+        return Response.json({
+            "status": "error",
+            "message": f"Failed to fetch RSS sync detail: {str(e)}"
+        }, status=500)

@@ -5,6 +5,7 @@
   import RssWatcher from './index/RssWatcher.svelte';
   import RecentFilings from './components/RecentFilings.svelte';
   import ExportHistory from './index/ExportHistory.svelte';
+  import RssSyncHistory from './index/RssSyncHistory.svelte';
 
   const pageData = loadPageData<IndexPageData>();
 </script>
@@ -18,5 +19,6 @@
     <RssWatcher />
   </div>
   <ExportHistory />
+  <RssSyncHistory />
   <RecentFilings databaseName={pageData.database_name} />
 </main>

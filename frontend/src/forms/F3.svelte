@@ -1,10 +1,20 @@
 <script lang="ts">
+  import { F3SankeyComponent, type InputRow } from '../components/sankey';
+
   interface Props {
     formData: any;
     filingId: string;
   }
 
   let { formData, filingId: _filingId }: Props = $props();
+
+  // Check if formData has the required fields for the Sankey diagram
+  const hasSankeyData = $derived(formData &&
+    formData.col_a_total_receipts != null &&
+    (formData.col_a_total_receipts > 0 || formData.col_a_operating_expenditures > 0));
+
+  // Cast formData to InputRow for Sankey (all fields should match)
+  const sankeyItems: InputRow[] = $derived(hasSankeyData ? [formData as InputRow] : []);
 </script>
 
 <div class="form-content">
@@ -84,6 +94,13 @@
         {/if}
       </dl>
     </div>
+
+    {#if hasSankeyData && sankeyItems.length > 0}
+      <div class="section-box">
+        <h4>Money Flow</h4>
+        <F3SankeyComponent items={sankeyItems} />
+      </div>
+    {/if}
   {:else}
     <p>No form data available</p>
   {/if}

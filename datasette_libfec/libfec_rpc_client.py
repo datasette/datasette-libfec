@@ -203,7 +203,8 @@ class LibfecRpcClient:
         state: Optional[str],
         cover_only: bool,
         output_path: str,
-        progress_callback: Callable
+        progress_callback: Callable,
+        write_metadata: bool = True
     ) -> dict:
         """
         Start RSS sync with progress tracking.
@@ -214,6 +215,7 @@ class LibfecRpcClient:
             cover_only: Only import cover pages
             output_path: Path to output SQLite database
             progress_callback: Called with sync/progress notifications
+            write_metadata: Whether to write metadata to the database
 
         Returns:
             Final sync result
@@ -227,6 +229,7 @@ class LibfecRpcClient:
         params = {
             "export_path": output_path,
             "cover_only": cover_only,
+            "write_metadata": write_metadata,
         }
         if since is not None:
             params["since"] = since
