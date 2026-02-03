@@ -4,7 +4,7 @@ from datasette_plugin_router import Body
 from typing import Optional, List, Literal
 import asyncio
 
-from .router import router
+from .router import router, check_permission
 from .state import libfec_client, rss_watcher_state
 
 
@@ -95,7 +95,8 @@ async def rss_watch_loop(
 
 
 @router.POST("/-/api/libfec/rss/start", output=RssResponse)
-async def rss_start(datasette, params: Body[RssStartParams]):
+@check_permission()
+async def rss_start(datasette, request, params: Body[RssStartParams]):
     if rss_watcher_state.running:
         return Response.json({
             "status": "error",
@@ -157,7 +158,8 @@ async def rss_start(datasette, params: Body[RssStartParams]):
 
 
 @router.POST("/-/api/libfec/rss/stop", output=RssResponse)
-async def rss_stop(datasette):
+@check_permission()
+async def rss_stop(datasette, request):
     if not rss_watcher_state.running:
         return Response.json({
             "status": "error",
@@ -192,7 +194,8 @@ async def rss_stop(datasette):
 
 
 @router.GET("/-/api/libfec/rss/status", output=RssResponse)
-async def rss_status(datasette):
+@check_permission()
+async def rss_status(datasette, request):
     config = None
     if rss_watcher_state.running:
         config = {
@@ -226,7 +229,8 @@ async def rss_status(datasette):
 
 
 @router.GET("/-/api/libfec/rss/syncs$", output=ApiRssSyncsListResponse)
-async def list_rss_syncs(datasette):
+@check_permission()
+async def list_rss_syncs(datasette, request):
     """List all RSS sync operations from the metadata tables"""
     db = datasette.get_database()
 
@@ -304,7 +308,8 @@ async def list_rss_syncs(datasette):
 
 
 @router.GET("/-/api/libfec/rss/syncs/(?P<sync_id>\\d+)")
-async def get_rss_sync_detail(datasette, sync_id: str):
+@check_permission()
+async def get_rss_sync_detail(datasette, request, sync_id: str):
     """Get detailed information about a specific RSS sync"""
     db = datasette.get_database()
     sync_id_int = int(sync_id)

@@ -3,7 +3,7 @@ from datasette import Response
 from datasette_plugin_router import Body
 from typing import Optional, List
 
-from .router import router
+from .router import router, check_permission
 from .state import libfec_client
 
 # Cache for search RPC clients (keyed by cycle)
@@ -27,7 +27,8 @@ class SearchResponse(BaseModel):
 
 
 @router.POST("/-/api/libfec/search", output=SearchResponse)
-async def search(datasette, params: Body[SearchParams]):
+@check_permission()
+async def search(datasette, request, params: Body[SearchParams]):
     """Search for candidates and committees using libfec search --rpc"""
     from .libfec_search_rpc_client import LibfecSearchRpcClient, RpcError
 

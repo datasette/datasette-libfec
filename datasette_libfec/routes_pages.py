@@ -3,7 +3,7 @@ Routes for contest, candidate, and committee pages.
 """
 from datasette import Response
 
-from .router import router
+from .router import router, check_permission
 from .page_data import (
     Candidate,
     CandidatePageData,
@@ -15,7 +15,8 @@ from .page_data import (
 
 
 @router.GET("/-/libfec$")
-async def libfec_page(datasette):
+@check_permission()
+async def libfec_page(datasette, request):
     db = datasette.get_database()
     page_data = IndexPageData(database_name=db.name)
     return Response.html(
@@ -31,7 +32,8 @@ async def libfec_page(datasette):
 
 
 @router.GET("/-/libfec/filing/(?P<filing_id>[^/]+)")
-async def filing_detail_page(datasette, filing_id: str):
+@check_permission()
+async def filing_detail_page(datasette, request, filing_id: str):
     db = datasette.get_database()
     filing = None
     form_data = None
@@ -98,6 +100,7 @@ async def filing_detail_page(datasette, filing_id: str):
 
 
 @router.GET("/-/libfec/contest$")
+@check_permission()
 async def contest_page(datasette, request):
     """
     Contest page showing candidates for a specific race.
@@ -179,6 +182,7 @@ async def contest_page(datasette, request):
 
 
 @router.GET("/-/libfec/candidate/(?P<candidate_id>[^/]+)$")
+@check_permission()
 async def candidate_page(datasette, request, candidate_id: str):
     """
     Candidate detail page.
@@ -258,6 +262,7 @@ async def candidate_page(datasette, request, candidate_id: str):
 
 
 @router.GET("/-/libfec/committee/(?P<committee_id>[^/]+)$")
+@check_permission()
 async def committee_page(datasette, request, committee_id: str):
     """
     Committee detail page.

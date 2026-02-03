@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datasette import hookimpl
+from datasette.permissions import Action
 from pathlib import Path
 from textwrap import dedent
 from typing import Optional
@@ -9,7 +10,7 @@ import os
 # Import route modules to trigger route registration on the shared router
 # pylint: disable=unused-import
 from . import routes_rss, routes_export, routes_search, routes_exports, routes_pages
-from .router import router
+from .router import router, LIBFEC_ACCESS_NAME
 _ = routes_rss, routes_export, routes_search, routes_exports, routes_pages
 
 # https://vite.dev/guide/backend-integration.html
@@ -82,3 +83,14 @@ def extra_template_vars(datasette):
 
 
     return {"datasette_libfec_vite_entry": datasette_libfec_vite_entry}
+
+@hookimpl
+def register_actions(datasette):
+    return [
+        Action(
+            name=LIBFEC_ACCESS_NAME,
+            description=(
+                "Can access libfec pages, features"
+            ),
+        ),
+    ]

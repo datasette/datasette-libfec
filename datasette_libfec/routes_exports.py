@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from datasette import Response
 from typing import Optional, List, Literal
 
-from .router import router
+from .router import router, check_permission
 
 
 class ExportRecord(BaseModel):
@@ -44,7 +44,8 @@ class ApiExportsListResponse(BaseModel):
     message: Optional[str] = None
 
 @router.GET("/-/api/libfec/exports$", output=ApiExportsListResponse)
-async def list_exports(datasette):
+@check_permission()
+async def list_exports(datasette, request):
     """List all export operations from the metadata tables"""
     db = datasette.get_database()
 
@@ -103,7 +104,8 @@ async def list_exports(datasette):
 
 
 @router.GET("/-/api/libfec/exports/(?P<export_id>\\d+)")
-async def get_export_detail(datasette, export_id: str):
+@check_permission()
+async def get_export_detail(datasette, request, export_id: str):
     """Get detailed information about a specific export"""
     db = datasette.get_database()
     export_id_int = int(export_id)
