@@ -55,14 +55,35 @@ async def search(datasette, request, params: Body[SearchParams]):
             limit=params.limit
         )
 
+        candidates = result["candidates"]
+        committees = result["committees"]
+
+        # Include principal campaign committees for matched candidates
+        existing_committee_ids = {c["committee_id"] for c in committees}
+        missing_committee_ids = []
+        for candidate in candidates:
+            pcc_id = candidate.get("principal_campaign_committee")
+            if pcc_id and pcc_id not in existing_committee_ids:
+                missing_committee_ids.append(pcc_id)
+                existing_committee_ids.add(pcc_id)  # Avoid duplicates
+
+        # Fetch missing principal committees
+        for committee_id in missing_committee_ids:
+            try:
+                committee = await client.get_committee(committee_id, cycle)
+                if committee:
+                    committees.append(committee)
+            except Exception:
+                pass  # Skip if committee lookup fails
+
         return Response.json({
             "status": "success",
             "cycle": result["cycle"],
             "query": result["query"],
             "candidate_count": result["candidate_count"],
-            "committee_count": result["committee_count"],
-            "candidates": result["candidates"],
-            "committees": result["committees"]
+            "committee_count": len(committees),
+            "candidates": candidates,
+            "committees": committees
         })
 
     except RpcError as e:

@@ -185,7 +185,28 @@
       data: item.data
     };
 
-    selected = [...selected, newItem];
+    const itemsToAdd: SelectedItem[] = [newItem];
+
+    // If selecting a candidate with a principal campaign committee, also add the committee
+    if (item.type === 'candidate' && item.data.principal_campaign_committee) {
+      const committeeId = item.data.principal_campaign_committee;
+      // Check if committee is not already selected
+      if (!selected.some(s => s.id === committeeId)) {
+        // Find the committee in search results
+        const committee = searchResults?.committees.find(c => c.committee_id === committeeId);
+        if (committee) {
+          itemsToAdd.push({
+            type: 'committee',
+            id: committee.committee_id,
+            name: committee.name,
+            cycle: searchResults?.cycle || cycle,
+            data: committee
+          });
+        }
+      }
+    }
+
+    selected = [...selected, ...itemsToAdd];
 
     // Clear search
     searchQuery = "";
