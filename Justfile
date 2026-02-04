@@ -24,7 +24,7 @@ frontend-dev *flags:
     npm run dev --prefix frontend -- --port 5177 {{flags}}
 
 dev *flags:
-  uv run datasette -p 8004 tmp.db {{flags}}
+  DATASETTE_SECRET=abc123 uv run datasette -p 8004 tmp.db {{flags}}
 
 dev-with-hmr *flags:
   DATASETTE_LIBFEC_VITE_PATH=http://localhost:5177/ \

@@ -94,3 +94,17 @@ def register_actions(datasette):
             ),
         ),
     ]
+
+
+@hookimpl
+def menu_links(datasette, actor):
+    async def inner():
+      if actor and (await datasette.allowed(action=LIBFEC_ACCESS_NAME, actor=actor)):
+          return [
+                  {
+                      "href": datasette.urls.path("/-/libfec/"),
+                      "label": "FEC Data",
+                  }
+              ]
+      return []
+    return inner
