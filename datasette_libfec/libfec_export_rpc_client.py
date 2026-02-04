@@ -247,7 +247,9 @@ class LibfecExportRpcClient:
         """
         self.progress_callback = progress_callback
 
-        params = {}
+        params = {
+          "include_all_bulk": True
+        }
         if filings is not None:
             params["filings"] = filings
         if cycle is not None:
