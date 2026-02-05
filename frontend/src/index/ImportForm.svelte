@@ -18,11 +18,52 @@
     error_message?: string;
   }
 
+  type ImportMode = 'search' | 'contests';
+
   let isLoading = $state(false);
   let cycle = $state(2026);
   let selectedSearchItems = $state<SelectedItem[]>([]);
   let exportStatus = $state<ExportStatus | null>(null);
   let exportRunning = $state(false);
+  let importMode = $state<ImportMode>('search');
+  let contestsInput = $state('');
+  let contestsValidationError = $state<string | null>(null);
+
+  // Regex for contest codes: 2-letter state + 2-digit district (e.g., CA01, TX30)
+  const CONTEST_REGEX = /^[A-Z]{2}\d{2}$/;
+
+  function parseContests(input: string): string[] {
+    return input
+      .toUpperCase()
+      .split(/[\s,]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }
+
+  function validateContests(input: string): { valid: boolean; codes: string[]; errors: string[] } {
+    const codes = parseContests(input);
+    const errors: string[] = [];
+    const validCodes: string[] = [];
+
+    for (const code of codes) {
+      if (CONTEST_REGEX.test(code)) {
+        validCodes.push(code);
+      } else {
+        errors.push(`"${code}" is not a valid contest code (expected format: CA01, TX30, etc.)`);
+      }
+    }
+
+    return { valid: errors.length === 0, codes: validCodes, errors };
+  }
+
+  function handleContestsInput() {
+    if (contestsInput.trim() === '') {
+      contestsValidationError = null;
+      return;
+    }
+    const { valid, errors } = validateContests(contestsInput);
+    contestsValidationError = valid ? null : errors.join('; ');
+  }
 
   function isActivelyExporting(): boolean {
     console.log(exportStatus?.phase);
@@ -104,14 +145,30 @@
   async function onSubmit(e: SubmitEvent) {
     e.preventDefault();
 
-    if (selectedSearchItems.length === 0) {
-      alert('Please select a candidate or committee to import.');
-      return;
+    let filingIds: string[];
+
+    if (importMode === 'search') {
+      if (selectedSearchItems.length === 0) {
+        alert('Please select a candidate or committee to import.');
+        return;
+      }
+      filingIds = selectedSearchItems.map(item => item.id);
+    } else {
+      // Contests mode
+      if (contestsInput.trim() === '') {
+        alert('Please enter at least one contest code.');
+        return;
+      }
+      const { valid, codes, errors } = validateContests(contestsInput);
+      if (!valid) {
+        alert(`Invalid contest codes:\n${errors.join('\n')}`);
+        return;
+      }
+      filingIds = codes;
     }
 
     isLoading = true;
     try {
-      const filingIds = selectedSearchItems.map(item => item.id);
       const {error} = await client.POST("/-/api/libfec/export/start", {
         body: {
           filings: filingIds,
@@ -122,8 +179,13 @@
         alert(`Error starting import: ${JSON.stringify(error)}`);
         return;
       }
-      // Clear search selection after starting import
-      selectedSearchItems = [];
+      // Clear inputs after starting import
+      if (importMode === 'search') {
+        selectedSearchItems = [];
+      } else {
+        contestsInput = '';
+        contestsValidationError = null;
+      }
       // Immediately load status
       await loadExportStatus();
     } finally {
@@ -225,17 +287,61 @@
     {/if}
 
     <form onsubmit={onSubmit}>
-      <!-- Search Component -->
+      <!-- Mode Toggle -->
       <div class="form-group">
-        <div style="font-weight: bold; margin-bottom: 0.5em;">Search for Candidate or Committee</div>
-        <SearchMultiSelect
-          bind:selected={selectedSearchItems}
-          cycle={cycle}
-          placeholder="Search for candidate or committee..."
-          onselect={handleSearchSelection}
-        />
-        <small>Search by name and select a candidate or committee to import</small>
+        <div class="mode-toggle">
+          <button
+            type="button"
+            class="mode-btn"
+            class:active={importMode === 'search'}
+            onclick={() => importMode = 'search'}
+          >
+            Candidates / Committees
+          </button>
+          <button
+            type="button"
+            class="mode-btn"
+            class:active={importMode === 'contests'}
+            onclick={() => importMode = 'contests'}
+          >
+            Contests
+          </button>
+        </div>
       </div>
+
+      {#if importMode === 'search'}
+        <!-- Search Component -->
+        <div class="form-group">
+          <div style="font-weight: bold; margin-bottom: 0.5em;">Search for Candidate or Committee</div>
+          <SearchMultiSelect
+            bind:selected={selectedSearchItems}
+            cycle={cycle}
+            placeholder="Search for candidate or committee..."
+            onselect={handleSearchSelection}
+          />
+          <small>Search by name and select a candidate or committee to import</small>
+        </div>
+      {:else}
+        <!-- Contests Input -->
+        <div class="form-group">
+          <label for="contests">
+            Contest Codes
+          </label>
+          <input
+            type="text"
+            id="contests"
+            name="contests"
+            bind:value={contestsInput}
+            oninput={handleContestsInput}
+            placeholder="CA01, TX30, NY14..."
+            class:invalid={contestsValidationError !== null}
+          />
+          <small>Enter contest codes separated by commas or spaces (e.g., CA01, TX30, NY14)</small>
+          {#if contestsValidationError}
+            <div class="validation-error">{contestsValidationError}</div>
+          {/if}
+        </div>
+      {/if}
 
       <!-- Cycle Input -->
       <div class="form-group">
@@ -256,7 +362,7 @@
       <!-- Submit Button -->
       <button
         type="submit"
-        disabled={isLoading || selectedSearchItems.length === 0}
+        disabled={isLoading || (importMode === 'search' ? selectedSearchItems.length === 0 : contestsInput.trim() === '' || contestsValidationError !== null)}
       >
         {isLoading ? "Starting..." : "Import Data"}
       </button>
@@ -279,12 +385,59 @@
     margin-bottom: 0.5em;
   }
 
-  .form-group select {
+  .form-group select,
+  .form-group input[type="text"] {
     max-width: 400px;
     padding: 0.5em;
     font-size: 1em;
     border: 1px solid #ccc;
     border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .form-group input[type="text"].invalid {
+    border-color: #dc3545;
+  }
+
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    overflow: hidden;
+    max-width: 400px;
+  }
+
+  .mode-btn {
+    flex: 1;
+    padding: 0.5em 1em;
+    font-size: 0.9em;
+    background: #f8f9fa;
+    color: #495057;
+    border: none;
+    border-right: 1px solid #ccc;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .mode-btn:last-child {
+    border-right: none;
+  }
+
+  .mode-btn:hover:not(.active) {
+    background: #e9ecef;
+  }
+
+  .mode-btn.active {
+    background: #0066cc;
+    color: white;
+  }
+
+  .validation-error {
+    color: #dc3545;
+    font-size: 0.85em;
+    margin-top: 0.5em;
   }
 
   small {

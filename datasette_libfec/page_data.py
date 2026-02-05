@@ -84,4 +84,12 @@ class IndexPageData(BaseModel):
     database_name: str
 
 
-__exports__ = [CandidatePageData, CommitteePageData, ContestPageData, FilingDetailPageData, IndexPageData]
+class ImportPageData(BaseModel):
+    database_name: str
+
+
+class RssPageData(BaseModel):
+    database_name: str
+
+
+__exports__ = [CandidatePageData, CommitteePageData, ContestPageData, FilingDetailPageData, IndexPageData, ImportPageData, RssPageData]

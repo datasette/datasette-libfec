@@ -41,6 +41,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: "src/index_view.ts",
+        import: "src/import_view.ts",
+        rss: "src/rss_view.ts",
         filing_detail: "src/filing_detail_view.ts",
         contest: "src/contest_view.ts",
         candidate: "src/candidate_view.ts",

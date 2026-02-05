@@ -1,11 +1,7 @@
 <script lang="ts">
   import type { IndexPageData } from "./page_data/IndexPageData.types.ts";
   import { loadPageData } from "./page_data/load.ts";
-  import ImportForm from './index/ImportForm.svelte';
-  import RssWatcher from './index/RssWatcher.svelte';
   import RecentFilings from './components/RecentFilings.svelte';
-  import ExportHistory from './index/ExportHistory.svelte';
-  import RssSyncHistory from './index/RssSyncHistory.svelte';
 
   const pageData = loadPageData<IndexPageData>();
 </script>
@@ -14,11 +10,52 @@
   <h1>FEC Data Import</h1>
   <p>Import Federal Election Commission data into your Datasette database.</p>
 
-  <div style="display: flex; grid-gap: 1rem;">
-    <ImportForm />
-    <RssWatcher />
+  <div class="nav-cards">
+    <a href="/-/libfec/import" class="nav-card">
+      <h2>Import Data</h2>
+      <p>Import FEC filings for candidates, committees, or contests.</p>
+    </a>
+    <a href="/-/libfec/rss" class="nav-card">
+      <h2>RSS Watcher</h2>
+      <p>Automatically watch and import new filings from the FEC RSS feed.</p>
+    </a>
   </div>
-  <ExportHistory />
-  <RssSyncHistory />
+
   <RecentFilings databaseName={pageData.database_name} />
 </main>
+
+<style>
+  .nav-cards {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .nav-card {
+    flex: 1;
+    padding: 1.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #f8f9fa;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .nav-card:hover {
+    border-color: #0066cc;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
+  }
+
+  .nav-card h2 {
+    margin: 0 0 0.5rem 0;
+    color: #0066cc;
+    font-size: 1.25rem;
+  }
+
+  .nav-card p {
+    margin: 0;
+    color: #495057;
+    font-size: 0.9rem;
+  }
+</style>

@@ -10,7 +10,11 @@ from .page_data import (
     Committee,
     CommitteePageData,
     ContestPageData,
-    Filing, FilingDetailPageData, IndexPageData
+    Filing,
+    FilingDetailPageData,
+    IndexPageData,
+    ImportPageData,
+    RssPageData,
 )
 
 
@@ -25,6 +29,40 @@ async def libfec_page(datasette, request):
             {
                 "page_title": "FEC Import",
                 "entrypoint": "src/index_view.ts",
+                "page_data": page_data.model_dump(),
+            }
+        )
+    )
+
+
+@router.GET("/-/libfec/import$")
+@check_permission()
+async def import_page(datasette, request):
+    db = datasette.get_database()
+    page_data = ImportPageData(database_name=db.name)
+    return Response.html(
+        await datasette.render_template(
+            "libfec_base.html",
+            {
+                "page_title": "Import FEC Data",
+                "entrypoint": "src/import_view.ts",
+                "page_data": page_data.model_dump(),
+            }
+        )
+    )
+
+
+@router.GET("/-/libfec/rss$")
+@check_permission()
+async def rss_page(datasette, request):
+    db = datasette.get_database()
+    page_data = RssPageData(database_name=db.name)
+    return Response.html(
+        await datasette.render_template(
+            "libfec_base.html",
+            {
+                "page_title": "RSS Watcher",
+                "entrypoint": "src/rss_view.ts",
                 "page_data": page_data.model_dump(),
             }
         )
