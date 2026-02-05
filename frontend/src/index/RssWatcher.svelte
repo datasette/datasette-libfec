@@ -5,69 +5,85 @@
 
   const client = createClient<paths>({ baseUrl: "/" });
 
-  interface RssConfig {
-    state: string | null;
-    cover_only: boolean;
-    interval: number;
-    output_db?: string;
-    next_sync_time?: number;
-    currently_syncing?: boolean;
-    phase?: string;
-    exported_count?: number;
-    total_count?: number;
-    current_filing_id?: string;
-    feed_title?: string;
-    feed_last_modified?: string;
-    error_message?: string;
-    error_code?: number;
-    error_data?: string;
-    sync_start_time?: number;
+  interface RssStatus {
+    enabled: boolean;
+    running: boolean;
+    phase: string;
+    interval_seconds: number | null;
+    seconds_until_next_sync: number | null;
+    exported_count: number;
+    total_count: number;
+    error_message: string | null;
   }
 
-  let rssRunning = $state(false);
-  let rssLoading = $state(false);
-  let rssState = $state("");
-  let rssCoverOnly = $state(true);
-  let rssInterval = $state(60);
-  let rssConfig = $state<RssConfig | null>(null);
-  let nextSyncLabel = $state<string>("");
+  interface SyncRecord {
+    sync_id: number;
+    sync_uuid: string;
+    created_at: string;
+    completed_at: string | null;
+    status: string;
+    exported_count: number;
+    total_feed_items: number | null;
+    error_message: string | null;
+  }
+
+  let status = $state<RssStatus | null>(null);
+  let syncs = $state<SyncRecord[]>([]);
+
+  // Client-side countdown tracking
+  let nextSyncTimestamp = $state<Date | null>(null);
+  let secondsRemaining = $state<number | null>(null);
 
   function isActivelySyncing(): boolean {
-    return rssConfig != null &&
-           (rssConfig.phase === 'fetching' || rssConfig.phase === 'exporting');
+    return status != null &&
+           (status.phase === 'fetching' || status.phase === 'exporting' || status.phase === 'syncing');
   }
 
   onMount(() => {
-    loadRssStatus();
+    loadStatus();
+    loadSyncs();
 
-    const labelInterval = setInterval(() => {
-      updateNextSyncLabel();
+    // Update countdown every second
+    const countdownInterval = setInterval(() => {
+      if (nextSyncTimestamp && status?.running && !isActivelySyncing()) {
+        const now = Date.now();
+        const remaining = Math.floor((nextSyncTimestamp.getTime() - now) / 1000);
+        secondsRemaining = Math.max(0, remaining);
+      }
     }, 1000);
 
+    // Poll server for status updates
     const statusInterval = setInterval(() => {
-      if (rssRunning) {
-        loadRssStatus();
+      loadStatus();
+      if (isActivelySyncing()) {
+        loadSyncs();
       }
-    }, isActivelySyncing() ? 1000 : 5000);
+    }, isActivelySyncing() ? 2000 : 10000);
+
+    // Refresh sync history periodically
+    const syncsInterval = setInterval(() => {
+      loadSyncs();
+    }, 30000);
 
     return () => {
-      clearInterval(labelInterval);
+      clearInterval(countdownInterval);
       clearInterval(statusInterval);
+      clearInterval(syncsInterval);
     };
   });
 
-  async function loadRssStatus() {
+  async function loadStatus() {
     try {
-      const {data, error} = await client.GET("/-/api/libfec/rss/status");
+      const { data, error } = await client.GET("/-/api/libfec/rss/status");
       if (data && !error) {
-        rssRunning = data.running;
-        if (data.config) {
-          const config = data.config as unknown as RssConfig;
-          rssConfig = config;
-          if (config.state) rssState = config.state;
-          rssCoverOnly = config.cover_only;
-          rssInterval = config.interval;
-          updateNextSyncLabel();
+        status = data as unknown as RssStatus;
+
+        if (status.seconds_until_next_sync !== null && status.seconds_until_next_sync !== undefined) {
+          nextSyncTimestamp = new Date(Date.now() + status.seconds_until_next_sync * 1000);
+          secondsRemaining = status.seconds_until_next_sync;
+        } else {
+          nextSyncTimestamp = null;
+          secondsRemaining = null;
         }
       }
     } catch (error) {
@@ -75,41 +91,51 @@
     }
   }
 
+  async function loadSyncs() {
+    try {
+      const { data, error } = await client.GET("/-/api/libfec/rss/syncs");
+      if (data && !error) {
+        syncs = (data as any).syncs || [];
+      }
+    } catch (error) {
+      console.error('Error loading sync history:', error);
+    }
+  }
+
   function formatDuration(seconds: number): string {
-    if (seconds < 0) return "soon";
-    if (seconds < 60) return `in ${Math.floor(seconds)} second${Math.floor(seconds) === 1 ? '' : 's'}`;
+    if (seconds <= 0) return "now";
+    if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
+    const remainingSeconds = seconds % 60;
     if (minutes < 60) {
-      return `in ${minutes} minute${minutes === 1 ? '' : 's'}${remainingSeconds > 0 ? ` ${remainingSeconds} second${remainingSeconds === 1 ? '' : 's'}` : ''}`;
+      return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
     }
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    return `in ${hours} hour${hours === 1 ? '' : 's'}${remainingMinutes > 0 ? ` ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'}` : ''}`;
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   }
 
   function formatProgress(): string {
-    if (!rssConfig) return "Unknown";
-
-    const phase = rssConfig.phase || "idle";
+    if (!status) return "Unknown";
+    const phase = status.phase || "idle";
 
     switch (phase) {
       case "idle":
         return "Idle";
+      case "syncing":
+        return "Starting sync...";
       case "fetching":
         return "Fetching RSS feed...";
       case "exporting":
-        if (rssConfig.total_count && rssConfig.total_count > 0) {
-          const count = rssConfig.exported_count || 0;
-          const total = rssConfig.total_count;
+        if (status.total_count && status.total_count > 0) {
+          const count = status.exported_count || 0;
+          const total = status.total_count;
           const percent = Math.round((count / total) * 100);
-          return `Exporting: ${count}/${total} filings (${percent}%)`;
+          return `Exporting: ${count}/${total} (${percent}%)`;
         }
         return "Exporting filings...";
       case "complete":
         return "Sync complete";
-      case "canceled":
-        return "Sync canceled";
       case "error":
         return "Error";
       default:
@@ -117,185 +143,112 @@
     }
   }
 
-  function updateNextSyncLabel() {
-    if (!rssConfig || !rssRunning) {
-      nextSyncLabel = "";
-      return;
-    }
-
-    if (rssConfig.currently_syncing) {
-      nextSyncLabel = "currently running";
-      return;
-    }
-
-    if (!rssConfig.next_sync_time) {
-      nextSyncLabel = "starting soon";
-      return;
-    }
-
-    const now = Date.now() / 1000;
-    const remaining = rssConfig.next_sync_time - now;
-
-    nextSyncLabel = formatDuration(remaining);
+  function getNextSyncLabel(): string {
+    if (!status?.running) return "";
+    if (isActivelySyncing()) return "syncing now";
+    if (secondsRemaining === null) return "starting soon";
+    return formatDuration(secondsRemaining);
   }
 
-  async function startRssWatcher() {
-    rssLoading = true;
-    try {
-      const {data, error} = await client.POST("/-/api/libfec/rss/start", {
-        body: {
-          state: rssState || null,
-          cover_only: rssCoverOnly,
-          interval: rssInterval
-        }
-      });
-      if (error) {
-        alert(`Error starting RSS watcher: ${JSON.stringify(error)}`);
-        return;
-      }
-      if (data) {
-        rssRunning = data.running;
-        rssConfig = data.config as unknown as RssConfig | null;
-        updateNextSyncLabel();
-        alert(`RSS watcher started successfully`);
-      }
-    } finally {
-      rssLoading = false;
-    }
+  function getNextSyncTooltip(): string {
+    if (!nextSyncTimestamp) return "";
+    return nextSyncTimestamp.toLocaleString();
   }
 
-  async function stopRssWatcher() {
-    rssLoading = true;
-    try {
-      const {data, error} = await client.POST("/-/api/libfec/rss/stop", {});
-      if (error) {
-        alert(`Error stopping RSS watcher: ${JSON.stringify(error)}`);
-        return;
-      }
-      if (data) {
-        rssRunning = data.running;
-        rssConfig = null;
-        nextSyncLabel = "";
-        alert(`RSS watcher stopped`);
-      }
-    } finally {
-      rssLoading = false;
+  function formatDateTime(isoString: string): string {
+    const date = new Date(isoString);
+    return date.toLocaleString();
+  }
+
+  function syncStatusBadge(syncStatus: string): string {
+    switch (syncStatus) {
+      case 'completed': return 'badge-success';
+      case 'running': return 'badge-info';
+      case 'failed': return 'badge-danger';
+      default: return 'badge-secondary';
     }
   }
 </script>
 
 <section class="rss-section">
-  <h2>Watch RSS Feed</h2>
-  <p>Automatically watch and import new FEC filings from the RSS feed.</p>
+  <h2>RSS Feed Watcher</h2>
 
-  {#if rssRunning}
-    <div class="rss-status running">
-      <strong>RSS Watcher is Running</strong>
-      {#if rssConfig}
-        <div class="rss-config">
-          <div>State: {rssConfig.state || 'All states'}</div>
-          <div>Cover Only: {rssConfig.cover_only ? 'Yes' : 'No'}</div>
-          <div>Interval: {rssConfig.interval} seconds</div>
-          {#if nextSyncLabel}
-            <div class="next-sync">Next sync: {nextSyncLabel}</div>
+  {#if status === null}
+    <p>Loading...</p>
+  {:else if status.running}
+    <div class="status-card enabled">
+      <div class="status-header">
+        <span class="status-badge running">Running</span>
+        <span class="status-indicator">
+          {#if isActivelySyncing()}
+            <span class="pulse"></span> Syncing
+          {:else}
+            Next sync: <strong class="countdown" title={getNextSyncTooltip()}>{getNextSyncLabel()}</strong>
           {/if}
+        </span>
+      </div>
+
+      <div class="config-display">
+        <div class="config-item">
+          <span class="label">Interval:</span>
+          <span class="value">{status.interval_seconds}s</span>
         </div>
+      </div>
 
+      {#if isActivelySyncing()}
         <div class="progress-section">
-          <div class="progress-status">
-            Status: <strong>{formatProgress()}</strong>
-          </div>
-
-          {#if rssConfig.phase === 'exporting' && rssConfig.total_count && rssConfig.total_count > 0}
+          <div class="progress-label">{formatProgress()}</div>
+          {#if status.total_count > 0}
             <div class="progress-bar">
               <div
                 class="progress-fill"
-                style="width: {((rssConfig.exported_count || 0) / rssConfig.total_count) * 100}%"
+                style="width: {(status.exported_count / status.total_count) * 100}%"
               ></div>
-            </div>
-          {/if}
-
-          {#if rssConfig.current_filing_id}
-            <div class="current-filing">
-              Processing: <code>{rssConfig.current_filing_id}</code>
-            </div>
-          {/if}
-
-          {#if rssConfig.error_message}
-            <div class="error-message">
-              <strong>Error:</strong> {rssConfig.error_message}
-              {#if rssConfig.error_code}
-                <div class="error-code">Code: {rssConfig.error_code}</div>
-              {/if}
-              {#if rssConfig.error_data}
-                <div class="error-details">
-                  <strong>Details:</strong>
-                  <pre>{rssConfig.error_data}</pre>
-                </div>
-              {/if}
             </div>
           {/if}
         </div>
       {/if}
-      <button
-        type="button"
-        class="button-danger"
-        disabled={rssLoading}
-        onclick={stopRssWatcher}
-      >
-        {rssLoading ? "Stopping..." : "Stop Watcher"}
-      </button>
+
+      {#if status.error_message}
+        <div class="error-box">
+          <strong>Error:</strong> {status.error_message}
+        </div>
+      {/if}
     </div>
   {:else}
-    <form onsubmit={(e) => { e.preventDefault(); startRssWatcher(); }}>
-      <div class="form-group">
-        <label for="rss-state">
-          State (optional)
-        </label>
-        <input
-          type="text"
-          id="rss-state"
-          name="rss-state"
-          bind:value={rssState}
-          placeholder="CA,NY,TX etc."
-          maxlength="2"
-        />
-        <small>Two-letter state code, or leave empty for all states</small>
-      </div>
+    <div class="status-card disabled">
+      <p>RSS watcher is not running.</p>
+      <p class="hint">To enable, add <code>rss-sync-interval-seconds</code> to your datasette.yaml plugin config:</p>
+      <pre>plugins:
+  datasette-libfec:
+    rss-sync-interval-seconds: 60</pre>
+    </div>
+  {/if}
 
-      <div class="form-group">
-        <label>
-          <input
-            type="checkbox"
-            bind:checked={rssCoverOnly}
-          />
-          Cover pages only
-        </label>
-        <small>Import only cover pages (faster)</small>
-      </div>
-
-      <div class="form-group">
-        <label for="rss-interval">
-          Check Interval (seconds)
-        </label>
-        <input
-          type="number"
-          id="rss-interval"
-          name="rss-interval"
-          bind:value={rssInterval}
-          min="1"
-          max="3600"
-        />
-        <small>How often to check the RSS feed (default: 60 seconds)</small>
-      </div>
-
-      <button
-        type="submit"
-        disabled={rssLoading}
-      >
-        {rssLoading ? "Starting..." : "Start RSS Watcher"}
-      </button>
-    </form>
+  {#if syncs.length > 0}
+    <div class="sync-history">
+      <h3>Recent Syncs</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Status</th>
+            <th>Exported</th>
+            <th>Feed Items</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each syncs as sync}
+            <tr>
+              <td>{formatDateTime(sync.created_at)}</td>
+              <td><span class="badge {syncStatusBadge(sync.status)}">{sync.status}</span></td>
+              <td>{sync.exported_count}</td>
+              <td>{sync.total_feed_items ?? '-'}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
   {/if}
 </section>
 
@@ -304,170 +257,194 @@
     flex: 1;
   }
 
-  .form-group {
+  .status-card {
+    padding: 1.5em;
+    border-radius: 8px;
     margin-bottom: 1.5em;
   }
 
-  .form-group label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 0.5em;
+  .status-card.enabled {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
   }
 
-  .form-group input[type="text"],
-  .form-group input[type="number"] {
-    max-width: 400px;
-    padding: 0.5em;
-    font-size: 1em;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-
-  button {
-    padding: 0.75em 1.5em;
-    font-size: 1em;
-    background: #0066cc;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  button:hover:not(:disabled) {
-    background: #0052a3;
-  }
-
-  button:disabled {
-    background: #999;
-    cursor: not-allowed;
-  }
-
-  .button-danger {
-    background: #dc3545;
-  }
-
-  .button-danger:hover:not(:disabled) {
-    background: #c82333;
-  }
-
-  .rss-status {
-    padding: 1.5em;
-    border-radius: 4px;
+  .status-card.disabled {
     background: #f8f9fa;
     border: 1px solid #dee2e6;
   }
 
-  .rss-status.running {
-    background: #d4edda;
-    border-color: #c3e6cb;
+  .status-card.disabled .hint {
+    color: #666;
+    font-size: 0.9em;
+    margin-top: 1em;
   }
 
-  .rss-status strong {
-    display: block;
-    margin-bottom: 1em;
-    font-size: 1.1em;
-  }
-
-  .rss-config {
-    margin: 1em 0;
+  .status-card.disabled pre {
+    background: #e9ecef;
     padding: 1em;
+    border-radius: 4px;
+    font-size: 0.85em;
+    overflow-x: auto;
+  }
+
+  .status-card.disabled code {
+    background: #e9ecef;
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+
+  .status-header {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    margin-bottom: 1em;
+  }
+
+  .status-badge {
+    padding: 0.25em 0.75em;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.9em;
+  }
+
+  .status-badge.running {
+    background: #28a745;
+    color: white;
+  }
+
+  .status-indicator {
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+
+  .countdown {
+    cursor: help;
+    border-bottom: 1px dotted currentColor;
+  }
+
+  .pulse {
+    width: 8px;
+    height: 8px;
+    background: #28a745;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+  }
+
+  .config-display {
+    display: flex;
+    gap: 2em;
+    padding: 0.75em 1em;
     background: white;
     border-radius: 4px;
-    font-family: monospace;
+    margin-bottom: 1em;
+    font-size: 0.9em;
   }
 
-  .rss-config div {
-    margin: 0.5em 0;
+  .config-item {
+    display: flex;
+    gap: 0.5em;
   }
 
-  .rss-config .next-sync {
-    color: #0066cc;
-    font-weight: 600;
-    margin-top: 1em;
-    padding-top: 0.75em;
-    border-top: 1px solid #e0e0e0;
-  }
-
-  small {
-    display: block;
+  .config-item .label {
     color: #666;
-    font-size: 0.85em;
-    margin-top: 0.25em;
   }
 
-  input[type="checkbox"] {
-    margin-right: 0.5em;
+  .config-item .value {
+    font-weight: 600;
   }
 
   .progress-section {
-    margin: 1.5em 0;
     padding: 1em;
     background: white;
     border-radius: 4px;
+    margin-bottom: 1em;
   }
 
-  .progress-status {
-    font-size: 0.95em;
-    margin-bottom: 0.75em;
+  .progress-label {
+    font-size: 0.9em;
+    margin-bottom: 0.5em;
   }
 
   .progress-bar {
-    height: 24px;
+    height: 20px;
     background: #e9ecef;
-    border-radius: 12px;
+    border-radius: 10px;
     overflow: hidden;
-    margin: 0.75em 0;
   }
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #0066cc, #0052a3);
+    background: linear-gradient(90deg, #28a745, #20c997);
     transition: width 0.3s ease;
   }
 
-  .current-filing {
-    margin-top: 0.75em;
-    font-size: 0.9em;
-    color: #495057;
-  }
-
-  .current-filing code {
-    background: #f8f9fa;
-    padding: 0.2em 0.4em;
-    border-radius: 3px;
-    font-family: 'Courier New', monospace;
-  }
-
-  .error-message {
-    margin-top: 0.75em;
-    padding: 0.75em;
+  .error-box {
+    padding: 0.75em 1em;
     background: #f8d7da;
-    color: #721c24;
     border: 1px solid #f5c6cb;
     border-radius: 4px;
+    color: #721c24;
+    margin-bottom: 1em;
     font-size: 0.9em;
   }
 
-  .error-code {
-    font-size: 0.85em;
-    margin-top: 0.25em;
-    opacity: 0.8;
+  .sync-history {
+    margin-top: 2em;
   }
 
-  .error-details {
-    margin-top: 0.5em;
-    font-size: 0.85em;
+  .sync-history h3 {
+    margin-bottom: 0.75em;
+    font-size: 1.1em;
   }
 
-  .error-details pre {
-    margin: 0.25em 0 0 0;
-    padding: 0.5em;
-    background: #fff;
-    border: 1px solid #f5c6cb;
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+  }
+
+  th, td {
+    padding: 0.5em 0.75em;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  th {
+    background: #f8f9fa;
+    font-weight: 600;
+  }
+
+  .badge {
+    padding: 0.2em 0.5em;
     border-radius: 3px;
-    overflow-x: auto;
-    font-size: 0.9em;
-    white-space: pre-wrap;
-    word-wrap: break-word;
+    font-size: 0.85em;
+    font-weight: 500;
+  }
+
+  .badge-success {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .badge-info {
+    background: #cce5ff;
+    color: #004085;
+  }
+
+  .badge-danger {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .badge-secondary {
+    background: #e9ecef;
+    color: #495057;
   }
 </style>

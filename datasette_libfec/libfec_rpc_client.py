@@ -243,6 +243,14 @@ class LibfecRpcClient:
         start_result = await self.send_request("sync/start", params, timeout=10.0)
         logger.debug(f"Sync started: {start_result}")
 
+        # Check if sync already completed (e.g., no items to process)
+        if start_result and isinstance(start_result, dict):
+            phase = start_result.get("phase")
+            if phase in ("complete", "canceled", "error"):
+                logger.debug(f"Sync completed immediately: {start_result}")
+                if self.completion_future and not self.completion_future.done():
+                    self.completion_future.set_result(start_result)
+
         # Keep sending sync/status requests to keep the RPC server processing exports
         # The RPC server processes up to 10 exports, then waits for stdin input
         async def poll_status():
@@ -250,7 +258,14 @@ class LibfecRpcClient:
                 try:
                     await asyncio.sleep(0.5)  # Poll every 500ms
                     if self.completion_future and not self.completion_future.done():
-                        await self.send_request("sync/status", timeout=5.0)
+                        status_result = await self.send_request("sync/status", timeout=5.0)
+                        # Check if status response indicates completion
+                        if status_result and isinstance(status_result, dict):
+                            phase = status_result.get("phase")
+                            if phase in ("complete", "canceled", "error"):
+                                logger.debug(f"Sync completed (from status): {status_result}")
+                                if self.completion_future and not self.completion_future.done():
+                                    self.completion_future.set_result(status_result)
                 except Exception as e:
                     logger.debug(f"Status poll error (expected on completion): {e}")
                     break

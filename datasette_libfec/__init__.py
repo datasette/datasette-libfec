@@ -110,3 +110,34 @@ def menu_links(datasette, actor):
               ]
       return []
     return inner
+
+
+@hookimpl
+def startup(datasette):
+    """Store RSS config for lazy initialization (started on first request)."""
+    async def inner():
+        from .rss_watcher import rss_watcher
+
+        # Check plugin config for rss-sync-interval-seconds
+        config = datasette.plugin_config("datasette-libfec") or {}
+        interval = config.get("rss-sync-interval-seconds")
+
+        if not interval:
+            return
+
+        # Store config for lazy init - task will start on first API request
+        rss_watcher.set_config(interval)
+
+    return inner
+
+
+@hookimpl
+def shutdown(datasette):
+    """Stop RSS watcher on shutdown."""
+    async def inner():
+        from .rss_watcher import rss_watcher
+
+        if rss_watcher.is_running():
+            await rss_watcher.stop()
+
+    return inner

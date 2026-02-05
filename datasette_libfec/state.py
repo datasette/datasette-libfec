@@ -1,6 +1,5 @@
-from .libfec_client import LibfecClient, RssWatcherState, ExportState
+from .libfec_client import LibfecClient, ExportState
 
 # Shared state - singleton instances
 libfec_client = LibfecClient()
-rss_watcher_state = RssWatcherState()
 export_state = ExportState()

@@ -59,7 +59,7 @@ class LibfecClient:
         output_db: str,
         state: Optional[str],
         cover_only: bool,
-        watcher_state: RssWatcherState
+        watcher_state  # RssRuntimeState or similar with same attributes
     ) -> None:
         """
         Run RSS watch using RPC mode with real-time progress tracking.
@@ -111,7 +111,8 @@ class LibfecClient:
                 state=state,
                 cover_only=cover_only,
                 output_path=output_db,
-                progress_callback=on_progress
+                progress_callback=on_progress,
+                write_metadata=True
             )
 
             # Mark as complete
