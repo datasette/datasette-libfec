@@ -82,6 +82,7 @@ class FilingDetailPageData(BaseModel):
 
 class IndexPageData(BaseModel):
     database_name: str
+    can_write: bool = False
 
 
 class ImportPageData(BaseModel):

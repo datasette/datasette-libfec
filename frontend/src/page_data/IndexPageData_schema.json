@@ -3,6 +3,11 @@
     "database_name": {
       "title": "Database Name",
       "type": "string"
+    },
+    "can_write": {
+      "default": false,
+      "title": "Can Write",
+      "type": "boolean"
     }
   },
   "required": [

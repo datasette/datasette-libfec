@@ -65,6 +65,9 @@ class LibfecExportRpcClient:
         # Start listening for messages
         self.listen_task = asyncio.create_task(self._listen_for_messages())
 
+        # Start listening for stderr
+        self.stderr_task = asyncio.create_task(self._listen_for_stderr())
+
         # Wait for ready notification with timeout
         try:
             await asyncio.wait_for(self.ready_future, timeout=5.0)
@@ -73,6 +76,22 @@ class LibfecExportRpcClient:
             logger.error("Timeout waiting for ready notification")
             await self.terminate()
             raise RuntimeError("libfec process did not send ready notification")
+
+    async def _listen_for_stderr(self) -> None:
+        """Read and log stderr from the libfec process."""
+        if not self.process or not self.process.stderr:
+            return
+
+        try:
+            while True:
+                line = await self.process.stderr.readline()
+                if not line:
+                    break
+                logger.warning(f"libfec stderr: {line.decode().rstrip()}")
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"Error reading stderr: {e}")
 
     async def _listen_for_messages(self) -> None:
         """
@@ -266,6 +285,7 @@ class LibfecExportRpcClient:
 
         # Send export/start request (just starts the export)
         logger.info(f"Sending export/start with params: {params}")
+        print(f"DEBUG: export/start params = {params}")
         start_result = await self.send_request("export/start", params, timeout=30.0)
         logger.info(f"Export started: {start_result}")
 
@@ -327,13 +347,14 @@ class LibfecExportRpcClient:
             logger.warning("Process did not exit after shutdown, terminating")
             await self.terminate()
 
-        # Cancel listener task
-        if self.listen_task and not self.listen_task.done():
-            self.listen_task.cancel()
-            try:
-                await self.listen_task
-            except asyncio.CancelledError:
-                pass
+        # Cancel listener tasks
+        for task in [self.listen_task, getattr(self, 'stderr_task', None)]:
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
         self.process = None
 
@@ -350,11 +371,12 @@ class LibfecExportRpcClient:
             except Exception as e:
                 logger.error(f"Error terminating process: {e}")
 
-        if self.listen_task and not self.listen_task.done():
-            self.listen_task.cancel()
-            try:
-                await self.listen_task
-            except asyncio.CancelledError:
-                pass
+        for task in [self.listen_task, getattr(self, 'stderr_task', None)]:
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
         self.process = None

@@ -6,8 +6,10 @@
  */
 
 export type DatabaseName = string;
+export type CanWrite = boolean;
 
 export interface IndexPageData {
   database_name: DatabaseName;
+  can_write?: CanWrite;
   [k: string]: unknown;
 }

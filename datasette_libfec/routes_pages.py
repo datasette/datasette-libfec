@@ -3,7 +3,7 @@ Routes for contest, candidate, and committee pages.
 """
 from datasette import Response
 
-from .router import router, check_permission
+from .router import router, check_permission, check_write_permission, LIBFEC_WRITE_NAME
 from .page_data import (
     Candidate,
     CandidatePageData,
@@ -22,7 +22,10 @@ from .page_data import (
 @check_permission()
 async def libfec_page(datasette, request):
     db = datasette.get_database()
-    page_data = IndexPageData(database_name=db.name)
+    can_write = await datasette.allowed(
+        action=LIBFEC_WRITE_NAME, actor=request.actor
+    )
+    page_data = IndexPageData(database_name=db.name, can_write=can_write)
     return Response.html(
         await datasette.render_template(
             "libfec_base.html",
@@ -36,7 +39,7 @@ async def libfec_page(datasette, request):
 
 
 @router.GET("/-/libfec/import$")
-@check_permission()
+@check_write_permission()
 async def import_page(datasette, request):
     db = datasette.get_database()
     page_data = ImportPageData(database_name=db.name)
@@ -53,7 +56,7 @@ async def import_page(datasette, request):
 
 
 @router.GET("/-/libfec/rss$")
-@check_permission()
+@check_write_permission()
 async def rss_page(datasette, request):
     db = datasette.get_database()
     page_data = RssPageData(database_name=db.name)

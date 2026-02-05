@@ -5,7 +5,7 @@ from typing import Optional, List
 import asyncio
 import uuid
 
-from .router import router, check_permission
+from .router import router, check_permission, check_write_permission
 from .state import libfec_client, export_state
 
 
@@ -24,7 +24,7 @@ class ExportResponse(BaseModel):
 
 
 @router.POST("/-/api/libfec/export/start", output=ExportResponse)
-@check_permission()
+@check_write_permission()
 async def export_start(datasette, request, params: Body[ExportStartParams]):
     if export_state.running:
         return Response.json({
@@ -103,7 +103,7 @@ async def export_status(datasette, request):
 
 
 @router.POST("/-/api/libfec/export/cancel", output=ExportResponse)
-@check_permission()
+@check_write_permission()
 async def export_cancel(datasette, request):
     if not export_state.running:
         return Response.json({

@@ -7,19 +7,21 @@
 </script>
 
 <main>
-  <h1>FEC Data Import</h1>
-  <p>Import Federal Election Commission data into your Datasette database.</p>
+  <h1>FEC Data</h1>
+  <p>Federal Election Commission data explorer.</p>
 
-  <div class="nav-cards">
-    <a href="/-/libfec/import" class="nav-card">
-      <h2>Import Data</h2>
-      <p>Import FEC filings for candidates, committees, or contests.</p>
-    </a>
-    <a href="/-/libfec/rss" class="nav-card">
-      <h2>RSS Watcher</h2>
-      <p>Automatically watch and import new filings from the FEC RSS feed.</p>
-    </a>
-  </div>
+  {#if pageData.can_write}
+    <div class="nav-cards">
+      <a href="/-/libfec/import" class="nav-card">
+        <h2>Import Data</h2>
+        <p>Import FEC filings for candidates, committees, or contests.</p>
+      </a>
+      <a href="/-/libfec/rss" class="nav-card">
+        <h2>RSS Watcher</h2>
+        <p>Automatically watch and import new filings from the FEC RSS feed.</p>
+      </a>
+    </div>
+  {/if}
 
   <RecentFilings databaseName={pageData.database_name} />
 </main>

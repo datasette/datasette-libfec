@@ -4,7 +4,7 @@ from datasette_plugin_router import Body
 from typing import Optional, List, Literal
 import asyncio
 
-from .router import router, check_permission
+from .router import router, check_permission, check_write_permission
 from .state import libfec_client, rss_watcher_state
 
 
@@ -95,7 +95,7 @@ async def rss_watch_loop(
 
 
 @router.POST("/-/api/libfec/rss/start", output=RssResponse)
-@check_permission()
+@check_write_permission()
 async def rss_start(datasette, request, params: Body[RssStartParams]):
     if rss_watcher_state.running:
         return Response.json({
@@ -158,7 +158,7 @@ async def rss_start(datasette, request, params: Body[RssStartParams]):
 
 
 @router.POST("/-/api/libfec/rss/stop", output=RssResponse)
-@check_permission()
+@check_write_permission()
 async def rss_stop(datasette, request):
     if not rss_watcher_state.running:
         return Response.json({

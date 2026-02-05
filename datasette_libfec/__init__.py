@@ -10,7 +10,7 @@ import os
 # Import route modules to trigger route registration on the shared router
 # pylint: disable=unused-import
 from . import routes_rss, routes_export, routes_search, routes_exports, routes_pages
-from .router import router, LIBFEC_ACCESS_NAME
+from .router import router, LIBFEC_ACCESS_NAME, LIBFEC_WRITE_NAME
 _ = routes_rss, routes_export, routes_search, routes_exports, routes_pages
 
 # https://vite.dev/guide/backend-integration.html
@@ -89,9 +89,11 @@ def register_actions(datasette):
     return [
         Action(
             name=LIBFEC_ACCESS_NAME,
-            description=(
-                "Can access libfec pages, features"
-            ),
+            description="Can access libfec pages (read-only)",
+        ),
+        Action(
+            name=LIBFEC_WRITE_NAME,
+            description="Can import FEC data and manage RSS watcher",
         ),
     ]
 
