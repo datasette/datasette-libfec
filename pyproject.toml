@@ -12,7 +12,7 @@ requires-python = ">=3.10"
 dependencies = [
     "datasette>=1a23",
     "datasette-plugin-router>=0.0.1a2",
-    "libfec>=0.0.19",
+    "libfec>=0.0.20",
 ]
 
 [dependency-groups]
