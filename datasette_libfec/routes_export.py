@@ -5,6 +5,7 @@ from typing import Optional, List
 import asyncio
 import uuid
 
+from .database import get_libfec_database
 from .router import router, check_permission, check_write_permission
 from .state import libfec_client, export_state
 
@@ -34,16 +35,7 @@ async def export_start(datasette, request, params: Body[ExportStartParams]):
         }, status=400)
 
     # Get output database
-    output_db = None
-    for name, db in datasette.databases.items():
-        if not db.is_memory:
-            output_db = db
-            break
-    if output_db is None:
-        return Response.json({
-            "status": "error",
-            "message": "No writable database found."
-        }, status=500)
+    output_db = get_libfec_database(datasette)
 
     # Start export in background task
     async def run_export():
@@ -98,7 +90,7 @@ async def export_status(datasette, request):
 
         # Get the database export_id for redirect
         try:
-            db = datasette.get_database()
+            db = get_libfec_database(datasette)
             result = await db.execute(
                 "SELECT export_id FROM libfec_exports ORDER BY export_id DESC LIMIT 1"
             )

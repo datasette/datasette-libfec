@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from datasette import Response
 from typing import Optional
 
+from .database import get_libfec_database
 from .router import router, check_permission
 from .rss_watcher import rss_watcher
 
@@ -35,7 +36,7 @@ async def rss_status(datasette, request):
     from .state import libfec_client
 
     # Lazy initialization - start watcher if configured but not running
-    db = datasette.get_database()
+    db = get_libfec_database(datasette)
     if db.path:
         rss_watcher.ensure_started(db.path, libfec_client)
 
@@ -58,7 +59,7 @@ async def rss_status(datasette, request):
 @check_permission()
 async def rss_syncs(datasette, request):
     """List recent sync attempts from libfec_rss_syncs table."""
-    db = datasette.get_database()
+    db = get_libfec_database(datasette)
 
     # Check if table exists
     tables = await db.execute(

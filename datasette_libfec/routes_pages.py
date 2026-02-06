@@ -3,6 +3,7 @@ Routes for contest, candidate, and committee pages.
 """
 from datasette import Response
 
+from .database import get_libfec_database
 from .router import router, check_permission, check_write_permission, LIBFEC_WRITE_NAME
 from .page_data import (
     Candidate,
@@ -24,7 +25,7 @@ from .page_data import (
 @router.GET("/-/libfec$")
 @check_permission()
 async def libfec_page(datasette, request):
-    db = datasette.get_database()
+    db = get_libfec_database(datasette)
     can_write = await datasette.allowed(
         action=LIBFEC_WRITE_NAME, actor=request.actor
     )
@@ -44,7 +45,7 @@ async def libfec_page(datasette, request):
 @router.GET("/-/libfec/import$")
 @check_write_permission()
 async def import_page(datasette, request):
-    db = datasette.get_database()
+    db = get_libfec_database(datasette)
     page_data = ImportPageData(database_name=db.name)
     return Response.html(
         await datasette.render_template(
@@ -61,7 +62,7 @@ async def import_page(datasette, request):
 @router.GET("/-/libfec/rss$")
 @check_write_permission()
 async def rss_page(datasette, request):
-    db = datasette.get_database()
+    db = get_libfec_database(datasette)
     page_data = RssPageData(database_name=db.name)
     return Response.html(
         await datasette.render_template(
@@ -78,7 +79,7 @@ async def rss_page(datasette, request):
 @router.GET("/-/libfec/filing/(?P<filing_id>[^/]+)")
 @check_permission()
 async def filing_detail_page(datasette, request, filing_id: str):
-    db = datasette.get_database()
+    db = get_libfec_database(datasette)
     filing = None
     form_data = None
     error = None
@@ -167,7 +168,7 @@ async def contest_page(datasette, request):
     error = None
 
     try:
-        db = datasette.get_database()
+        db = get_libfec_database(datasette)
 
         if office == "H" and district:
             candidates_result = await db.execute(
@@ -271,7 +272,7 @@ async def candidate_page(datasette, request, candidate_id: str):
     principal_committee_id = None
 
     try:
-        db = datasette.get_database()
+        db = get_libfec_database(datasette)
 
         # Fetch candidate from database
         candidate_result = await db.execute(
@@ -341,7 +342,7 @@ async def export_detail_page(datasette, request, export_id: str):
     """
     Export detail page showing all filings from an export.
     """
-    db = datasette.get_database()
+    db = get_libfec_database(datasette)
     export_id_int = int(export_id)
 
     export_uuid = None
@@ -477,7 +478,7 @@ async def committee_page(datasette, request, committee_id: str):
     candidate_id = None
 
     try:
-        db = datasette.get_database()
+        db = get_libfec_database(datasette)
 
         # Fetch committee from database
         committee_result = await db.execute(
