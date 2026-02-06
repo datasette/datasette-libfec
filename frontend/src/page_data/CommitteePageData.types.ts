@@ -35,6 +35,10 @@ export type AddressCity1 = string | null;
 export type AddressState1 = string | null;
 export type AddressZip1 = string | null;
 export type Cycle2 = number | null;
+export type F3CoverageThroughDate = string | null;
+export type F3TotalReceipts = number | null;
+export type F3TotalDisbursements = number | null;
+export type F3CashOnHandEnd = number | null;
 export type FilingId = string;
 export type CoverRecordForm = string | null;
 export type FilerId = string | null;
@@ -85,6 +89,10 @@ export interface Candidate {
   address_state?: AddressState1;
   address_zip?: AddressZip1;
   cycle?: Cycle2;
+  f3_coverage_through_date?: F3CoverageThroughDate;
+  f3_total_receipts?: F3TotalReceipts;
+  f3_total_disbursements?: F3TotalDisbursements;
+  f3_cash_on_hand_end?: F3CashOnHandEnd;
   [k: string]: unknown;
 }
 export interface Filing {

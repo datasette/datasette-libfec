@@ -161,6 +161,54 @@
           ],
           "default": null,
           "title": "Cycle"
+        },
+        "f3_coverage_through_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "F3 Coverage Through Date"
+        },
+        "f3_total_receipts": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "F3 Total Receipts"
+        },
+        "f3_total_disbursements": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "F3 Total Disbursements"
+        },
+        "f3_cash_on_hand_end": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "F3 Cash On Hand End"
         }
       },
       "required": [

@@ -21,6 +21,10 @@ export type AddressCity = string | null;
 export type AddressState = string | null;
 export type AddressZip = string | null;
 export type Cycle1 = number | null;
+export type F3CoverageThroughDate = string | null;
+export type F3TotalReceipts = number | null;
+export type F3TotalDisbursements = number | null;
+export type F3CashOnHandEnd = number | null;
 export type CommitteeId = string;
 export type Name1 = string | null;
 export type CommitteeType = string | null;
@@ -68,6 +72,10 @@ export interface Candidate {
   address_state?: AddressState;
   address_zip?: AddressZip;
   cycle?: Cycle1;
+  f3_coverage_through_date?: F3CoverageThroughDate;
+  f3_total_receipts?: F3TotalReceipts;
+  f3_total_disbursements?: F3TotalDisbursements;
+  f3_cash_on_hand_end?: F3CashOnHandEnd;
   [k: string]: unknown;
 }
 export interface Committee {

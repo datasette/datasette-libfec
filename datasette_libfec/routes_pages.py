@@ -190,7 +190,37 @@ async def contest_page(datasette, request):
                 [state, office, cycle]
             )
 
-        candidates = [Candidate(**dict(row)) for row in candidates_result.rows]
+        # Build candidates list and fetch F3 data for each
+        candidates = []
+        for row in candidates_result.rows:
+            candidate_data = dict(row)
+            committee_id = candidate_data.get("principal_campaign_committee")
+
+            if committee_id:
+                # Get most recent F3 filing for this committee
+                f3_result = await db.execute(
+                    """
+                    SELECT
+                        f3.coverage_through_date,
+                        f3.col_a_total_receipts,
+                        f3.col_a_total_disbursements,
+                        f3.col_a_cash_on_hand_close_of_period
+                    FROM libfec_F3 f3
+                    JOIN libfec_filings fil ON f3.filing_id = fil.filing_id
+                    WHERE fil.filer_id = ?
+                    ORDER BY f3.coverage_through_date DESC
+                    LIMIT 1
+                    """,
+                    [committee_id]
+                )
+                f3_row = f3_result.first()
+                if f3_row:
+                    candidate_data["f3_coverage_through_date"] = f3_row[0]
+                    candidate_data["f3_total_receipts"] = f3_row[1]
+                    candidate_data["f3_total_disbursements"] = f3_row[2]
+                    candidate_data["f3_cash_on_hand_end"] = f3_row[3]
+
+            candidates.append(Candidate(**candidate_data))
 
     except Exception as e:
         error = str(e)

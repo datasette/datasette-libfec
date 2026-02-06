@@ -16,6 +16,11 @@ class Candidate(BaseModel):
     address_state: str | None = None
     address_zip: str | None = None
     cycle: int | None = None
+    # F3 filing data (most recent)
+    f3_coverage_through_date: str | None = None
+    f3_total_receipts: float | None = None
+    f3_total_disbursements: float | None = None
+    f3_cash_on_hand_end: float | None = None
 
 
 class Committee(BaseModel):
