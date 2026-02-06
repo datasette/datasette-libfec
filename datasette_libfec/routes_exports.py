@@ -93,7 +93,7 @@ async def list_exports(datasette, request):
         return Response.json(ApiExportsListResponse(
             status="success",
             exports=exports
-        ).model_dump_json())
+        ).model_dump())
 
 
     except Exception as e:
