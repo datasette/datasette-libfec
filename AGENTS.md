@@ -235,3 +235,90 @@ pytest
 ```
 
 Test file: `tests/test_libfec.py`
+
+## UI Patterns
+
+### Page Layout
+
+All entity pages (Candidate, Committee, Contest) follow this structure:
+
+```
+1. Breadcrumb (FEC Data → Contest → Entity)
+2. Title row: h1 with name + badge | FEC.gov link (right-aligned)
+3. Subtitle: one-line description
+4. Main content (filings table)
+5. Footer info (address, related entities) - gray text, border-top separator
+```
+
+Keep layouts flat - avoid nested boxes/sections.
+
+### Svelte 5 Patterns
+
+```typescript
+// Props
+let { formData, filingId }: Props = $props();
+
+// State
+let loading = $state(true);
+
+// Derived
+const total = $derived(items.reduce(...));
+
+// Stores - use get() for one-time reads, $ prefix for reactive
+import { get } from 'svelte/store';
+const dbName = get(databaseName);  // one-time
+$: reactiveValue = $storeName;     // reactive
+```
+
+### Database Name Store
+
+For client-side SQL queries, use the store from `stores.ts`:
+
+```typescript
+// Parent sets it from pageData
+import { databaseName as databaseNameStore } from './stores';
+databaseNameStore.set(pageData.database_name);
+
+// Child reads it
+import { get } from 'svelte/store';
+import { databaseName } from '../../stores';
+const dbName = get(databaseName);
+await fetch(`/${dbName}.json?sql=...`);
+```
+
+### Component Organization
+
+For complex forms, use subdirectories:
+
+```
+forms/
+├── F3/
+│   ├── F3.svelte           # Main component
+│   ├── StateContributors.svelte
+│   └── TopPayees.svelte
+├── F1.svelte
+```
+
+Import: `import F3 from './forms/F3/F3.svelte';`
+
+## Backend Patterns
+
+### Background Task Lazy Init
+
+Don't start tasks in startup hook - event loop may not be ready. Start on first HTTP request:
+
+```python
+# startup hook - just store config
+rss_watcher.set_config(interval)
+
+# route handler - actually start
+def ensure_started(self):
+    if self._initialized:
+        return
+    loop = asyncio.get_running_loop()
+    self._task = loop.create_task(self._run_loop())
+```
+
+### Response JSON
+
+Use `model.model_dump()` not `model.model_dump_json()` with `Response.json()` to avoid double encoding.

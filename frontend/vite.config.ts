@@ -47,6 +47,7 @@ export default defineConfig({
         contest: "src/contest_view.ts",
         candidate: "src/candidate_view.ts",
         committee: "src/committee_view.ts",
+        export: "src/export_view.ts",
       },
     },
   },

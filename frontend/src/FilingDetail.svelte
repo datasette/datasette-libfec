@@ -1,10 +1,11 @@
 <script lang="ts">
   import type { FilingDetailPageData } from "./page_data/FilingDetailPageData.types.ts";
   import { loadPageData } from "./page_data/load.ts";
+  import { databaseName as databaseNameStore } from './stores';
   import F1 from './forms/F1.svelte';
   import F1S from './forms/F1S.svelte';
   import F2 from './forms/F2.svelte';
-  import F3 from './forms/F3.svelte';
+  import F3 from './forms/F3/F3.svelte';
   import F3P from './forms/F3P.svelte';
   import F3S from './forms/F3S.svelte';
   import F3X from './forms/F3X.svelte';
@@ -20,13 +21,16 @@
   const filingId = pageData.filing_id;
   const databaseName = pageData.database_name;
 
+  // Set the store for child components to use
+  databaseNameStore.set(databaseName);
+
   // Determine report type for conditional rendering
   const reportType = filingData?.cover_record_form || 'Unknown';
 </script>
 
 <div class="filing-detail">
   <div class="header">
-    <h1>FEC-{filingId}</h1>
+    <h1>FEC-{filingId} {reportType}</h1>
     {#if filingData?.filer_name}
       <div class="filer-info">
         <span class="filer-name">
@@ -69,8 +73,6 @@
   </div>
 
   <section class="info-section">
-    <h2>Report Type: {reportType}</h2>
-
     {#if reportType === 'F1'}
       <F1 {formData} {filingId} />
     {:else if reportType === 'F1S'}
@@ -158,6 +160,7 @@
   .filer-id {
     color: #666;
     font-size: 0.9rem;
+    font-family: monospace;
   }
 
   .links {

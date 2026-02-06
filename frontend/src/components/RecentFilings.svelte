@@ -36,8 +36,8 @@
   const refetch = queryResp.refetch!;
 
   function formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
+    // @ts-ignore
+    return Temporal.PlainDate.from(dateStr).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'

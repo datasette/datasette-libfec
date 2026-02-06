@@ -16,6 +16,7 @@
     total_exported?: number;
     warnings?: string[];
     error_message?: string;
+    db_export_id?: number;
   }
 
   type ImportMode = 'search' | 'contests';
@@ -28,6 +29,7 @@
   let importMode = $state<ImportMode>('search');
   let contestsInput = $state('');
   let contestsValidationError = $state<string | null>(null);
+  let waitingForExport = $state(false); // Track if we started an export and are waiting
 
   // Regex for contest codes: 2-letter state + 2-digit district (e.g., CA01, TX30)
   const CONTEST_REGEX = /^[A-Z]{2}\d{2}$/;
@@ -75,21 +77,32 @@
 
   onMount(() => {
     loadExportStatus();
-    if(!isActivelyExporting()) return;
+    // Poll for status updates while an export might be running
     const statusInterval = setInterval(loadExportStatus, 1000);
 
     return () => {
       clearInterval(statusInterval);
     };
-    
   });
 
   async function loadExportStatus() {
     try {
       const {data, error} = await client.GET("/-/api/libfec/export/status");
       if (data && !error) {
-        exportStatus = data as unknown as ExportStatus;
+        const status = data as unknown as ExportStatus;
+        exportStatus = status;
         exportRunning = isActivelyExporting();
+
+        // If an export is actively running, track it so we redirect when complete
+        if (exportRunning) {
+          waitingForExport = true;
+        }
+
+        // Redirect to export detail page when our export completes
+        if (waitingForExport && status.phase === 'complete' && status.db_export_id) {
+          waitingForExport = false;
+          window.location.href = `/-/libfec/exports/${status.db_export_id}`;
+        }
       }
     } catch (error) {
       console.error('Error loading export status:', error);
@@ -179,6 +192,8 @@
         alert(`Error starting import: ${JSON.stringify(error)}`);
         return;
       }
+      // Mark that we're waiting for this export to complete
+      waitingForExport = true;
       // Clear inputs after starting import
       if (importMode === 'search') {
         selectedSearchItems = [];

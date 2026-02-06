@@ -93,4 +93,38 @@ class RssPageData(BaseModel):
     database_name: str
 
 
-__exports__ = [CandidatePageData, CommitteePageData, ContestPageData, FilingDetailPageData, IndexPageData, ImportPageData, RssPageData]
+class ExportFilingInfo(BaseModel):
+    filing_id: str
+    success: bool
+    message: str | None = None
+    # From libfec_filings table
+    cover_record_form: str | None = None
+    filer_id: str | None = None
+    filer_name: str | None = None
+    coverage_from_date: str | None = None
+    coverage_through_date: str | None = None
+
+
+class ExportInputInfo(BaseModel):
+    id: int
+    input_type: str
+    input_value: str
+    cycle: int | None = None
+    filing_ids: list[str] = []
+
+
+class ExportPageData(BaseModel):
+    export_id: int
+    export_uuid: str | None = None
+    created_at: str | None = None
+    status: str | None = None
+    filings_count: int = 0
+    cover_only: bool = False
+    error_message: str | None = None
+    inputs: list[ExportInputInfo] = []
+    filings: list[ExportFilingInfo] = []
+    database_name: str
+    error: str | None = None
+
+
+__exports__ = [CandidatePageData, CommitteePageData, ContestPageData, FilingDetailPageData, IndexPageData, ImportPageData, RssPageData, ExportPageData]

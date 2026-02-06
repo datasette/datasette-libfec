@@ -1,0 +1,239 @@
+{
+  "$defs": {
+    "ExportFilingInfo": {
+      "properties": {
+        "filing_id": {
+          "title": "Filing Id",
+          "type": "string"
+        },
+        "success": {
+          "title": "Success",
+          "type": "boolean"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message"
+        },
+        "cover_record_form": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cover Record Form"
+        },
+        "filer_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filer Id"
+        },
+        "filer_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filer Name"
+        },
+        "coverage_from_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverage From Date"
+        },
+        "coverage_through_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverage Through Date"
+        }
+      },
+      "required": [
+        "filing_id",
+        "success"
+      ],
+      "title": "ExportFilingInfo",
+      "type": "object"
+    },
+    "ExportInputInfo": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "input_type": {
+          "title": "Input Type",
+          "type": "string"
+        },
+        "input_value": {
+          "title": "Input Value",
+          "type": "string"
+        },
+        "cycle": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cycle"
+        },
+        "filing_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Filing Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "input_type",
+        "input_value"
+      ],
+      "title": "ExportInputInfo",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "export_id": {
+      "title": "Export Id",
+      "type": "integer"
+    },
+    "export_uuid": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Export Uuid"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Status"
+    },
+    "filings_count": {
+      "default": 0,
+      "title": "Filings Count",
+      "type": "integer"
+    },
+    "cover_only": {
+      "default": false,
+      "title": "Cover Only",
+      "type": "boolean"
+    },
+    "error_message": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Message"
+    },
+    "inputs": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ExportInputInfo"
+      },
+      "title": "Inputs",
+      "type": "array"
+    },
+    "filings": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ExportFilingInfo"
+      },
+      "title": "Filings",
+      "type": "array"
+    },
+    "database_name": {
+      "title": "Database Name",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
+    }
+  },
+  "required": [
+    "export_id",
+    "database_name"
+  ],
+  "title": "ExportPageData",
+  "type": "object"
+}

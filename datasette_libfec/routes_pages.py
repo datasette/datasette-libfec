@@ -10,6 +10,9 @@ from .page_data import (
     Committee,
     CommitteePageData,
     ContestPageData,
+    ExportFilingInfo,
+    ExportInputInfo,
+    ExportPageData,
     Filing,
     FilingDetailPageData,
     IndexPageData,
@@ -296,6 +299,132 @@ async def candidate_page(datasette, request, candidate_id: str):
             {
                 "page_title": f"{candidate_name} - Candidate",
                 "entrypoint": "src/candidate_view.ts",
+                "page_data": page_data.model_dump(),
+            }
+        )
+    )
+
+
+@router.GET("/-/libfec/exports/(?P<export_id>\\d+)$")
+@check_permission()
+async def export_detail_page(datasette, request, export_id: str):
+    """
+    Export detail page showing all filings from an export.
+    """
+    db = datasette.get_database()
+    export_id_int = int(export_id)
+
+    export_uuid = None
+    created_at = None
+    status = None
+    filings_count = 0
+    cover_only = False
+    error_message = None
+    inputs = []
+    filings = []
+    error = None
+
+    try:
+        # Get export record
+        export_result = await db.execute("""
+            SELECT export_uuid, created_at, status, filings_count, cover_only, error_message
+            FROM libfec_exports
+            WHERE export_id = ?
+        """, [export_id_int])
+        export_row = export_result.first()
+
+        if not export_row:
+            return Response.html("<h1>Export not found</h1>", status=404)
+
+        export_uuid = export_row[0]
+        created_at = export_row[1]
+        status = export_row[2]
+        filings_count = export_row[3] or 0
+        cover_only = bool(export_row[4])
+        error_message = export_row[5]
+
+        # Get inputs
+        try:
+            inputs_result = await db.execute("""
+                SELECT id, input_type, input_value, cycle
+                FROM libfec_export_inputs
+                WHERE export_id = ?
+                ORDER BY id
+            """, [export_id_int])
+
+            for row in inputs_result.rows:
+                input_record = ExportInputInfo(
+                    id=row[0],
+                    input_type=row[1],
+                    input_value=row[2],
+                    cycle=row[3],
+                    filing_ids=[]
+                )
+                # Get filing IDs for this input
+                filings_for_input = await db.execute("""
+                    SELECT filing_id
+                    FROM libfec_export_input_filings
+                    WHERE input_id = ?
+                """, [row[0]])
+                input_record.filing_ids = [f[0] for f in filings_for_input.rows]
+                inputs.append(input_record)
+        except Exception:
+            pass
+
+        # Get filings with metadata from libfec_filings
+        try:
+            filings_result = await db.execute("""
+                SELECT
+                    ef.filing_id,
+                    ef.success,
+                    ef.message,
+                    f.cover_record_form,
+                    f.filer_id,
+                    f.filer_name,
+                    f.coverage_from_date,
+                    f.coverage_through_date
+                FROM libfec_export_filings ef
+                LEFT JOIN libfec_filings f ON ef.filing_id = f.filing_id
+                WHERE ef.export_id = ?
+                ORDER BY ef.filing_id DESC
+            """, [export_id_int])
+
+            for row in filings_result.rows:
+                filings.append(ExportFilingInfo(
+                    filing_id=row[0],
+                    success=bool(row[1]),
+                    message=row[2],
+                    cover_record_form=row[3],
+                    filer_id=row[4],
+                    filer_name=row[5],
+                    coverage_from_date=row[6],
+                    coverage_through_date=row[7],
+                ))
+        except Exception:
+            pass
+
+    except Exception as e:
+        error = str(e)
+
+    page_data = ExportPageData(
+        export_id=export_id_int,
+        export_uuid=export_uuid,
+        created_at=created_at,
+        status=status,
+        filings_count=filings_count,
+        cover_only=cover_only,
+        error_message=error_message,
+        inputs=inputs,
+        filings=filings,
+        database_name=db.name,
+        error=error,
+    )
+    return Response.html(
+        await datasette.render_template(
+            "libfec_base.html",
+            {
+                "page_title": f"Export {export_id}",
+                "entrypoint": "src/export_view.ts",
                 "page_data": page_data.model_dump(),
             }
         )

@@ -96,6 +96,18 @@ async def export_status(datasette, request):
         response_data["total_exported"] = export_state.total_exported
         response_data["warnings"] = export_state.warnings
 
+        # Get the database export_id for redirect
+        try:
+            db = datasette.get_database()
+            result = await db.execute(
+                "SELECT export_id FROM libfec_exports ORDER BY export_id DESC LIMIT 1"
+            )
+            row = result.first()
+            if row:
+                response_data["db_export_id"] = row[0]
+        except Exception:
+            pass
+
     elif export_state.phase == "error":
         response_data["error_message"] = export_state.error_message
 
