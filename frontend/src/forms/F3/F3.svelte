@@ -3,6 +3,7 @@
   import { get } from 'svelte/store';
   import { F3SankeyComponent, type InputRow } from '../../components/sankey';
   import { databaseName } from '../../stores';
+  import { query } from '../../api';
   import StateContributors from './StateContributors.svelte';
   import TopPayees from './TopPayees.svelte';
 
@@ -58,38 +59,32 @@
 
     try {
       // Fetch contributions by state
-      const stateQuery = `
+      const stateQuerySql = `
         SELECT
           contributor_state,
           SUM(contribution_amount) as total_contributions
         FROM libfec_schedule_a
-        WHERE filing_id = '${filingId}'
+        WHERE filing_id = :filing_id
           AND contributor_state IS NOT NULL
           AND contributor_state != ''
         GROUP BY contributor_state
         ORDER BY total_contributions DESC
       `;
-      const stateResponse = await fetch(`/${dbName}.json?sql=${encodeURIComponent(stateQuery)}&_shape=array`);
-      if (stateResponse.ok) {
-        stateContributions = await stateResponse.json();
-      }
+      stateContributions = await query(dbName, stateQuerySql, { filing_id: filingId });
 
       // Fetch top payees
-      const payeeQuery = `
+      const payeeQuerySql = `
         SELECT
           COALESCE(payee_organization_name, payee_last_name || ', ' || payee_first_name) as payee,
           SUM(expenditure_amount) as total_amount,
           GROUP_CONCAT(DISTINCT expenditure_purpose_descrip) as purposes
         FROM libfec_schedule_b
-        WHERE filing_id = '${filingId}'
+        WHERE filing_id = :filing_id
         GROUP BY payee
         ORDER BY total_amount DESC
         LIMIT 20
       `;
-      const payeeResponse = await fetch(`/${dbName}.json?sql=${encodeURIComponent(payeeQuery)}&_shape=array`);
-      if (payeeResponse.ok) {
-        topPayees = await payeeResponse.json();
-      }
+      topPayees = await query(dbName, payeeQuerySql, { filing_id: filingId });
     } catch (e) {
       console.error('Error fetching schedule data:', e);
     } finally {

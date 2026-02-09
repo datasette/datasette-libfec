@@ -282,8 +282,9 @@ databaseNameStore.set(pageData.database_name);
 // Child reads it
 import { get } from 'svelte/store';
 import { databaseName } from '../../stores';
+import { query } from '../../api';
 const dbName = get(databaseName);
-await fetch(`/${dbName}.json?sql=...`);
+const results = await query(dbName, 'SELECT * FROM ...');
 ```
 
 ### Component Organization
@@ -322,3 +323,24 @@ def ensure_started(self):
 ### Response JSON
 
 Use `model.model_dump()` not `model.model_dump_json()` with `Response.json()` to avoid double encoding.
+
+## Frontend Patterns
+
+### Database Queries
+
+**Always use the `query()` function from `api.ts` for database queries.** Never use direct `fetch()` calls for SQL queries.
+
+```typescript
+// ✅ Correct - use api.ts
+import { query } from '../../api';
+const results = await query(dbName, 'SELECT * FROM table WHERE id = ?');
+
+// ❌ Wrong - direct fetch
+const response = await fetch(`/${dbName}.json?sql=${encodeURIComponent(sql)}&_shape=array`);
+const results = await response.json();
+```
+
+The `query()` function:
+- Handles URL encoding and query parameters
+- Returns properly typed results
+- Provides a consistent interface across the codebase
