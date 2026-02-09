@@ -6,9 +6,41 @@
   import { query } from '../../api';
   import StateContributors from './StateContributors.svelte';
   import TopPayees from './TopPayees.svelte';
+  import { getReportLabel } from '../../utils/reportCodes';
+
+  // F3 form data from database - extends InputRow with additional summary fields
+  export interface F3FormData extends InputRow {
+    report_code: string;
+    
+    // Summary totals
+    col_a_total_disbursements: number | null;
+
+    // Line 6: Net Contributions
+    col_a_total_contributions_no_loans: number | null;
+    col_b_total_contributions_no_loans: number | null;
+    col_a_total_contributions_refunds: number | null;
+    col_b_total_contributions_refunds: number | null;
+    col_a_net_contributions: number | null;
+    col_b_net_contributions: number | null;
+
+    // Line 7: Net Operating Expenditures
+    col_a_total_operating_expenditures: number | null;
+    col_b_total_operating_expenditures: number | null;
+    col_a_total_offset_to_operating_expenditures: number | null;
+    col_b_total_offset_to_operating_expenditures: number | null;
+    col_a_net_operating_expenditures: number | null;
+    col_b_net_operating_expenditures: number | null;
+
+    // Debts (Lines 9-10)
+    col_a_debts_to: number | null;
+    col_a_debts_by: number | null;
+
+    // Election info
+    election_state: string | null;
+  }
 
   interface Props {
-    formData: any;
+    formData: F3FormData;
     filingId: string;
   }
 
@@ -21,8 +53,10 @@
     formData.col_a_total_receipts != null &&
     (formData.col_a_total_receipts > 0 || formData.col_a_operating_expenditures > 0));
 
-  // Cast formData to InputRow for Sankey (all fields should match)
-  const sankeyItems: InputRow[] = $derived(hasSankeyData ? [formData as InputRow] : []);
+  // F3FormData extends InputRow, so it's compatible with the Sankey component
+  const sankeyItems: InputRow[] = $derived(hasSankeyData && formData ? [formData] : []);
+
+  const reportTitle = $derived(getReportLabel(formData.report_code));
 
   function usd(value: number | null | undefined): string {
     if (value == null) return '$0';
@@ -30,7 +64,7 @@
   }
 
   const cashChange = $derived(
-    (formData?.col_a_cash_on_hand_close_of_period ?? 0) - (formData?.col_a_cash_beginning_reporting_period ?? 0)
+    (formData.col_a_cash_on_hand_close_of_period ?? 0) - (formData.col_a_cash_beginning_reporting_period ?? 0)
   );
 
   // Schedule data
@@ -49,7 +83,7 @@
   let topPayees = $state<TopPayee[]>([]);
   let loadingSchedules = $state(true);
 
-  const homeState = $derived(formData?.election_state || null);
+  const homeState = $derived(formData.election_state || null);
 
   onMount(async () => {
     if (!filingId) {
@@ -95,6 +129,9 @@
 
 <div class="form-content">
   {#if formData}
+    <h3 class="report-title">{formData.coverage_from_date.substring(0, 4)} {reportTitle}</h3>
+    <span>{formData.coverage_from_date} to {formData.coverage_through_date}</span>
+
     <!-- Summary Cards -->
     <div class="summary-cards">
       <div class="card">
@@ -233,6 +270,12 @@
     margin-top: 1rem;
   }
 
+  .report-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
   .summary-cards {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -312,12 +355,16 @@
 
   .table-container {
     overflow-x: auto;
+    
+    display: flex;
+    justify-content: center;
   }
 
   .summary-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    font-size: 1rem;
+    max-width: 720px;
   }
 
   .summary-table th,
@@ -342,7 +389,7 @@
   }
 
   .col-subheader {
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     font-weight: normal;
   }
 
@@ -357,7 +404,7 @@
 
   .note {
     font-style: italic;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 
   .subtotal td {

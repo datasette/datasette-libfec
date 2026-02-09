@@ -41,7 +41,7 @@ export interface InputRow {
 	col_a_other_disbursements: number;
 }
 
-interface F3Node {
+export interface F3Node {
 	id: keyof InputRow;
 	label: string;
 	to?: keyof InputRow;
