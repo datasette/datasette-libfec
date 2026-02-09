@@ -84,8 +84,10 @@ just types  # Generate frontend/api.d.ts from OpenAPI schema
 | `just types-watch` | Watch and regenerate types on Python changes |
 | `just frontend` | Build production frontend bundle |
 | `just frontend-dev` | Start Vite dev server (port 5177) |
-| `just format` | Format frontend code with Prettier |
-| `just format-check` | Check frontend code formatting |
+| `just format` | Format all code (backend + frontend) |
+| `just format-check` | Check all code formatting |
+| `just format-backend` | Format Python code with ruff |
+| `just format-frontend` | Format frontend code with Prettier |
 | `just dev` | Run Datasette on port 8004 |
 | `just dev-with-hmr` | Run Datasette with HMR + auto-restart on file changes |
 
@@ -110,6 +112,7 @@ Test file: `tests/test_libfec.py`
 - datasette >= 1.0a23
 - datasette-plugin-router
 - pydantic >= 2.0
+- ruff >= 0.15.0 (dev, formatting)
 - libfec (external CLI tool, must be in PATH)
 
 **Frontend:**

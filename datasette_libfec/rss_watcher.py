@@ -4,6 +4,7 @@ RSS Watcher - background sync based on plugin config.
 If datasette-libfec plugin config has rss-sync-interval-seconds set,
 syncs RSS feed at that interval. Always cover_only, no state filter.
 """
+
 import asyncio
 import time
 from typing import Optional, TYPE_CHECKING
@@ -131,7 +132,7 @@ class RssWatcher:
                     self._db_path,
                     None,  # No state filter
                     True,  # cover_only
-                    self
+                    self,
                 )
                 self.phase = "idle"
 

@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class RpcError(Exception):
     """JSON-RPC error response"""
+
     def __init__(self, code: int, message: str, data: Any = None):
         self.code = code
         self.message = message
@@ -82,7 +83,9 @@ class LibfecRpcClient:
                     # Cancel completion future if waiting
                     if self.completion_future and not self.completion_future.done():
                         self.completion_future.set_exception(
-                            RuntimeError("libfec process terminated before sync completed")
+                            RuntimeError(
+                                "libfec process terminated before sync completed"
+                            )
                         )
                     break
 
@@ -105,7 +108,7 @@ class LibfecRpcClient:
                                 RpcError(
                                     err.get("code", -1),
                                     err.get("message", "Unknown error"),
-                                    err.get("data")
+                                    err.get("data"),
                                 )
                             )
                         elif "result" in msg:
@@ -124,7 +127,10 @@ class LibfecRpcClient:
 
                             # Resolve completion future on terminal phases
                             if phase in ("complete", "canceled", "error"):
-                                if self.completion_future and not self.completion_future.done():
+                                if (
+                                    self.completion_future
+                                    and not self.completion_future.done()
+                                ):
                                     self.completion_future.set_result(params)
 
                         # Deliver to callback
@@ -132,7 +138,9 @@ class LibfecRpcClient:
                             try:
                                 self.progress_callback(msg)
                             except Exception as e:
-                                logger.error(f"Progress callback error: {e}", exc_info=True)
+                                logger.error(
+                                    f"Progress callback error: {e}", exc_info=True
+                                )
 
         except asyncio.CancelledError:
             logger.debug("Message listener cancelled")
@@ -141,10 +149,7 @@ class LibfecRpcClient:
             logger.error(f"Error in message listener: {e}", exc_info=True)
 
     async def send_request(
-        self,
-        method: str,
-        params: Optional[dict] = None,
-        timeout: float = 5.0
+        self, method: str, params: Optional[dict] = None, timeout: float = 5.0
     ) -> Any:
         """
         Send JSON-RPC request via stdin, wait for response.
@@ -204,7 +209,7 @@ class LibfecRpcClient:
         cover_only: bool,
         output_path: str,
         progress_callback: Callable,
-        write_metadata: bool = True
+        write_metadata: bool = True,
     ) -> dict:
         """
         Start RSS sync with progress tracking.
@@ -258,13 +263,20 @@ class LibfecRpcClient:
                 try:
                     await asyncio.sleep(0.5)  # Poll every 500ms
                     if self.completion_future and not self.completion_future.done():
-                        status_result = await self.send_request("sync/status", timeout=5.0)
+                        status_result = await self.send_request(
+                            "sync/status", timeout=5.0
+                        )
                         # Check if status response indicates completion
                         if status_result and isinstance(status_result, dict):
                             phase = status_result.get("phase")
                             if phase in ("complete", "canceled", "error"):
-                                logger.debug(f"Sync completed (from status): {status_result}")
-                                if self.completion_future and not self.completion_future.done():
+                                logger.debug(
+                                    f"Sync completed (from status): {status_result}"
+                                )
+                                if (
+                                    self.completion_future
+                                    and not self.completion_future.done()
+                                ):
                                     self.completion_future.set_result(status_result)
                 except Exception as e:
                     logger.debug(f"Status poll error (expected on completion): {e}")
@@ -275,7 +287,9 @@ class LibfecRpcClient:
 
         # Wait for completion notification with 300s timeout
         try:
-            completion_result = await asyncio.wait_for(self.completion_future, timeout=300.0)
+            completion_result = await asyncio.wait_for(
+                self.completion_future, timeout=300.0
+            )
 
             # Check if sync completed with error
             if completion_result.get("phase") == "error":

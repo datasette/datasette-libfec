@@ -11,24 +11,39 @@ import os
 # pylint: disable=unused-import
 from . import routes_rss, routes_export, routes_search, routes_exports, routes_pages
 from .router import router, LIBFEC_ACCESS_NAME, LIBFEC_WRITE_NAME
+
 _ = routes_rss, routes_export, routes_search, routes_exports, routes_pages
+
 
 # https://vite.dev/guide/backend-integration.html
 class ManifestChunk(BaseModel):
     """Vite manifest chunk."""
+
     src: Optional[str] = None
     file: str  # The output file name of this chunk / asset
-    css: Optional[list[str]] = None  # The list of CSS files imported by this chunk (JS chunks only)
-    assets: Optional[list[str]] = None  # The list of asset files imported by this chunk, excluding CSS (JS chunks only)
+    css: Optional[list[str]] = (
+        None  # The list of CSS files imported by this chunk (JS chunks only)
+    )
+    assets: Optional[list[str]] = (
+        None  # The list of asset files imported by this chunk, excluding CSS (JS chunks only)
+    )
     isEntry: Optional[bool] = None  # Whether this chunk or asset is an entry point
     name: Optional[str] = None  # The name of this chunk / asset if known
-    isDynamicEntry: Optional[bool] = None  # Whether this chunk is a dynamic entry point (JS chunks only)
-    imports: Optional[list[str]] = None  # The list of statically imported chunks (JS chunks only)
-    dynamicImports: Optional[list[str]] = None  # The list of dynamically imported chunks (JS chunks only)
+    isDynamicEntry: Optional[bool] = (
+        None  # Whether this chunk is a dynamic entry point (JS chunks only)
+    )
+    imports: Optional[list[str]] = (
+        None  # The list of statically imported chunks (JS chunks only)
+    )
+    dynamicImports: Optional[list[str]] = (
+        None  # The list of dynamically imported chunks (JS chunks only)
+    )
+
 
 @hookimpl
 def register_routes():
     return router.routes()
+
 
 @hookimpl
 def extra_template_vars(datasette):
@@ -50,15 +65,14 @@ def extra_template_vars(datasette):
         # https://vite.dev/guide/backend-integration.html
 
         if vite_path:
-          return dedent(f"""
+            return dedent(f"""
 
           <script type="module" src="{vite_path}@vite/client"></script>
           <script type="module" src="{vite_path}{entrypoint}"></script>
 
-          """
-          )
+          """)
         else:
-            chunk  = manifest.get(entrypoint)
+            chunk = manifest.get(entrypoint)
             if not chunk:
                 raise ValueError(f"Entrypoint {entrypoint} not found in manifest")
             parts = []
@@ -81,8 +95,8 @@ def extra_template_vars(datasette):
             # skip part 4
             return "\n".join(parts)
 
-
     return {"datasette_libfec_vite_entry": datasette_libfec_vite_entry}
+
 
 @hookimpl
 def register_actions(datasette):
@@ -101,20 +115,22 @@ def register_actions(datasette):
 @hookimpl
 def menu_links(datasette, actor):
     async def inner():
-      if actor and (await datasette.allowed(action=LIBFEC_ACCESS_NAME, actor=actor)):
-          return [
-                  {
-                      "href": datasette.urls.path("/-/libfec/"),
-                      "label": "FEC Data",
-                  }
-              ]
-      return []
+        if actor and (await datasette.allowed(action=LIBFEC_ACCESS_NAME, actor=actor)):
+            return [
+                {
+                    "href": datasette.urls.path("/-/libfec/"),
+                    "label": "FEC Data",
+                }
+            ]
+        return []
+
     return inner
 
 
 @hookimpl
 def startup(datasette):
     """Store RSS config for lazy initialization (started on first request)."""
+
     async def inner():
         from .rss_watcher import rss_watcher
 
@@ -134,6 +150,7 @@ def startup(datasette):
 @hookimpl
 def shutdown(datasette):
     """Stop RSS watcher on shutdown."""
+
     async def inner():
         from .rss_watcher import rss_watcher
 

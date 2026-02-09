@@ -41,18 +41,19 @@ async def search(datasette, request, params: Body[SearchParams]):
             await client.start_process()
             search_clients[cycle] = client
         except Exception as e:
-            return Response.json({
-                "status": "error",
-                "message": f"Failed to start search process: {str(e)}"
-            }, status=500)
+            return Response.json(
+                {
+                    "status": "error",
+                    "message": f"Failed to start search process: {str(e)}",
+                },
+                status=500,
+            )
 
     client = search_clients[cycle]
 
     try:
         result = await client.search_query(
-            query=params.query,
-            cycle=cycle,
-            limit=params.limit
+            query=params.query, cycle=cycle, limit=params.limit
         )
 
         candidates = result["candidates"]
@@ -76,24 +77,28 @@ async def search(datasette, request, params: Body[SearchParams]):
             except Exception:
                 pass  # Skip if committee lookup fails
 
-        return Response.json({
-            "status": "success",
-            "cycle": result["cycle"],
-            "query": result["query"],
-            "candidate_count": result["candidate_count"],
-            "committee_count": len(committees),
-            "candidates": candidates,
-            "committees": committees
-        })
+        return Response.json(
+            {
+                "status": "success",
+                "cycle": result["cycle"],
+                "query": result["query"],
+                "candidate_count": result["candidate_count"],
+                "committee_count": len(committees),
+                "candidates": candidates,
+                "committees": committees,
+            }
+        )
 
     except RpcError as e:
-        return Response.json({
-            "status": "error",
-            "message": f"Search error: {e.message}",
-            "code": e.code
-        }, status=500)
+        return Response.json(
+            {
+                "status": "error",
+                "message": f"Search error: {e.message}",
+                "code": e.code,
+            },
+            status=500,
+        )
     except Exception as e:
-        return Response.json({
-            "status": "error",
-            "message": f"Search failed: {str(e)}"
-        }, status=500)
+        return Response.json(
+            {"status": "error", "message": f"Search failed: {str(e)}"}, status=500
+        )

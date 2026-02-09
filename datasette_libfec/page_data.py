@@ -132,4 +132,13 @@ class ExportPageData(BaseModel):
     error: str | None = None
 
 
-__exports__ = [CandidatePageData, CommitteePageData, ContestPageData, FilingDetailPageData, IndexPageData, ImportPageData, RssPageData, ExportPageData]
+__exports__ = [
+    CandidatePageData,
+    CommitteePageData,
+    ContestPageData,
+    FilingDetailPageData,
+    IndexPageData,
+    ImportPageData,
+    RssPageData,
+    ExportPageData,
+]

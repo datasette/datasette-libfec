@@ -18,7 +18,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest",
-    "pytest-asyncio"
+    "pytest-asyncio",
+    "ruff>=0.15.0",
 ]
 
 [build-system]

@@ -19,23 +19,64 @@ def test_export_rpc_params_construction():
     test_cases = [
         # Basic filings with cycle
         (
-            {"filings": ["C00123456"], "cycle": 2024, "cover_only": False, "clobber": False},
-            {"filings": ["C00123456"], "cycle": 2024, "include_all_bulk": True, "write_metadata": True},
+            {
+                "filings": ["C00123456"],
+                "cycle": 2024,
+                "cover_only": False,
+                "clobber": False,
+            },
+            {
+                "filings": ["C00123456"],
+                "cycle": 2024,
+                "include_all_bulk": True,
+                "write_metadata": True,
+            },
         ),
         # Contest codes
         (
-            {"filings": ["CA01", "TX30"], "cycle": 2026, "cover_only": False, "clobber": False},
-            {"filings": ["CA01", "TX30"], "cycle": 2026, "include_all_bulk": True, "write_metadata": True},
+            {
+                "filings": ["CA01", "TX30"],
+                "cycle": 2026,
+                "cover_only": False,
+                "clobber": False,
+            },
+            {
+                "filings": ["CA01", "TX30"],
+                "cycle": 2026,
+                "include_all_bulk": True,
+                "write_metadata": True,
+            },
         ),
         # With cover_only
         (
-            {"filings": ["1234567"], "cycle": 2024, "cover_only": True, "clobber": False},
-            {"filings": ["1234567"], "cycle": 2024, "cover_only": True, "include_all_bulk": True, "write_metadata": True},
+            {
+                "filings": ["1234567"],
+                "cycle": 2024,
+                "cover_only": True,
+                "clobber": False,
+            },
+            {
+                "filings": ["1234567"],
+                "cycle": 2024,
+                "cover_only": True,
+                "include_all_bulk": True,
+                "write_metadata": True,
+            },
         ),
         # With clobber
         (
-            {"filings": ["C00111111"], "cycle": None, "cover_only": False, "clobber": True},
-            {"filings": ["C00111111"], "clobber": True, "include_all_bulk": True, "write_metadata": True},
+            {
+                "filings": ["C00111111"],
+                "cycle": None,
+                "cover_only": False,
+                "clobber": True,
+            },
+            {
+                "filings": ["C00111111"],
+                "clobber": True,
+                "include_all_bulk": True,
+                "write_metadata": True,
+            },
         ),
         # No filings (export all)
         (
@@ -44,8 +85,20 @@ def test_export_rpc_params_construction():
         ),
         # All options enabled
         (
-            {"filings": ["C00123456", "CA01"], "cycle": 2024, "cover_only": True, "clobber": True},
-            {"filings": ["C00123456", "CA01"], "cycle": 2024, "cover_only": True, "clobber": True, "include_all_bulk": True, "write_metadata": True},
+            {
+                "filings": ["C00123456", "CA01"],
+                "cycle": 2024,
+                "cover_only": True,
+                "clobber": True,
+            },
+            {
+                "filings": ["C00123456", "CA01"],
+                "cycle": 2024,
+                "cover_only": True,
+                "clobber": True,
+                "include_all_bulk": True,
+                "write_metadata": True,
+            },
         ),
     ]
 
@@ -63,7 +116,9 @@ def test_export_rpc_params_construction():
             params["clobber"] = input_kwargs["clobber"]
         params["write_metadata"] = True
 
-        assert params == expected_params, f"Input {input_kwargs} produced {params}, expected {expected_params}"
+        assert params == expected_params, (
+            f"Input {input_kwargs} produced {params}, expected {expected_params}"
+        )
 
 
 def test_export_subprocess_args():

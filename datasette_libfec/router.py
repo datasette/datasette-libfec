@@ -10,6 +10,7 @@ LIBFEC_WRITE_NAME = "datasette_libfec_write"
 
 def check_permission():
     """Decorator for routes requiring read access."""
+
     def decorator(func):
         @wraps(func)
         async def wrapper(datasette, request, **kwargs):
@@ -27,6 +28,7 @@ def check_permission():
 
 def check_write_permission():
     """Decorator for routes requiring write access (import, RSS, etc.)."""
+
     def decorator(func):
         @wraps(func)
         async def wrapper(datasette, request, **kwargs):
@@ -49,4 +51,3 @@ def check_write_permission():
         return wrapper
 
     return decorator
-

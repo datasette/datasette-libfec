@@ -23,11 +23,25 @@ frontend *flags:
 frontend-dev *flags:
     npm run dev --prefix frontend -- --port 5177 {{flags}}
 
-format *flags:
+format-frontend *flags:
     npm run format --prefix frontend {{flags}}
 
-format-check *flags:
+format-frontend-check *flags:
     npm run format:check --prefix frontend {{flags}}
+
+format-backend *flags:
+    uv run ruff format {{flags}}
+
+format-backend-check *flags:
+    uv run ruff format --check {{flags}}
+
+format:
+    just format-backend
+    just format-frontend
+
+format-check:
+    just format-backend-check
+    just format-frontend-check
 
 dev *flags:
   DATASETTE_SECRET=abc123 uv run datasette -p 8004 tmp.db ye2.db {{flags}}

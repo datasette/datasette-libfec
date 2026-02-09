@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class RpcError(Exception):
     """JSON-RPC error response"""
+
     def __init__(self, code: int, message: str, data: Any = None):
         self.code = code
         self.message = message
@@ -44,7 +45,9 @@ class LibfecSearchRpcClient:
         if self.process is not None:
             raise RuntimeError("Process already started")
 
-        logger.info(f"Starting libfec search --rpc: {self.libfec_path} --cycle {self.cycle}")
+        logger.info(
+            f"Starting libfec search --rpc: {self.libfec_path} --cycle {self.cycle}"
+        )
 
         # Create ready future to wait for ready notification
         self.ready_future = asyncio.Future()
@@ -90,7 +93,9 @@ class LibfecSearchRpcClient:
                     for future in self.pending_requests.values():
                         if not future.done():
                             future.set_exception(
-                                RuntimeError("libfec search process terminated unexpectedly")
+                                RuntimeError(
+                                    "libfec search process terminated unexpectedly"
+                                )
                             )
                     break
 
@@ -113,7 +118,7 @@ class LibfecSearchRpcClient:
                                 RpcError(
                                     err.get("code", -1),
                                     err.get("message", "Unknown error"),
-                                    err.get("data")
+                                    err.get("data"),
                                 )
                             )
                         elif "result" in msg:
@@ -137,10 +142,7 @@ class LibfecSearchRpcClient:
             logger.error(f"Error in message listener: {e}", exc_info=True)
 
     async def send_request(
-        self,
-        method: str,
-        params: Optional[dict] = None,
-        timeout: float = 10.0
+        self, method: str, params: Optional[dict] = None, timeout: float = 10.0
     ) -> Any:
         """
         Send JSON-RPC request via stdin, wait for response.
@@ -194,10 +196,7 @@ class LibfecSearchRpcClient:
             self.pending_requests.pop(self.request_id, None)
 
     async def search_query(
-        self,
-        query: str,
-        cycle: Optional[int] = None,
-        limit: int = 100
+        self, query: str, cycle: Optional[int] = None, limit: int = 100
     ) -> dict:
         """
         Search for candidates and committees.
@@ -217,9 +216,7 @@ class LibfecSearchRpcClient:
         return await self.send_request("search/query", params)
 
     async def get_candidate(
-        self,
-        candidate_id: str,
-        cycle: Optional[int] = None
+        self, candidate_id: str, cycle: Optional[int] = None
     ) -> dict:
         """
         Get detailed candidate information.
@@ -238,9 +235,7 @@ class LibfecSearchRpcClient:
         return await self.send_request("search/candidate", params)
 
     async def get_committee(
-        self,
-        committee_id: str,
-        cycle: Optional[int] = None
+        self, committee_id: str, cycle: Optional[int] = None
     ) -> dict:
         """
         Get detailed committee information.

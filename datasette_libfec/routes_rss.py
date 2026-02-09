@@ -1,4 +1,5 @@
 """RSS watcher API routes."""
+
 from pydantic import BaseModel
 from datasette import Response
 from typing import Optional
@@ -43,16 +44,18 @@ async def rss_status(datasette, request):
     running = rss_watcher.is_running()
     interval = rss_watcher._interval_seconds
 
-    return Response.json(RssStatusResponse(
-        enabled=running,
-        running=running,
-        phase=rss_watcher.phase,
-        interval_seconds=interval,
-        seconds_until_next_sync=rss_watcher.seconds_until_next_sync(),
-        exported_count=rss_watcher.exported_count,
-        total_count=rss_watcher.total_count,
-        error_message=rss_watcher.error_message,
-    ).model_dump())
+    return Response.json(
+        RssStatusResponse(
+            enabled=running,
+            running=running,
+            phase=rss_watcher.phase,
+            interval_seconds=interval,
+            seconds_until_next_sync=rss_watcher.seconds_until_next_sync(),
+            exported_count=rss_watcher.exported_count,
+            total_count=rss_watcher.total_count,
+            error_message=rss_watcher.error_message,
+        ).model_dump()
+    )
 
 
 @router.GET("/-/api/libfec/rss/syncs")
@@ -78,15 +81,17 @@ async def rss_syncs(datasette, request):
 
     syncs = []
     for row in result.rows:
-        syncs.append(RssSyncRecord(
-            sync_id=row[0],
-            sync_uuid=row[1],
-            created_at=row[2],
-            completed_at=row[3],
-            status=row[4],
-            exported_count=row[5] or 0,
-            total_feed_items=row[6],
-            error_message=row[7],
-        ).model_dump())
+        syncs.append(
+            RssSyncRecord(
+                sync_id=row[0],
+                sync_uuid=row[1],
+                created_at=row[2],
+                completed_at=row[3],
+                status=row[4],
+                exported_count=row[5] or 0,
+                total_feed_items=row[6],
+                error_message=row[7],
+            ).model_dump()
+        )
 
     return Response.json({"syncs": syncs})

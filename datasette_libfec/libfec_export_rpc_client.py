@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class RpcError(Exception):
     """JSON-RPC error response"""
+
     def __init__(self, code: int, message: str, data: Any = None):
         self.code = code
         self.message = message
@@ -46,7 +47,9 @@ class LibfecExportRpcClient:
         if self.process is not None:
             raise RuntimeError("Process already started")
 
-        logger.info(f"Starting libfec export --rpc: {self.libfec_path} -o {self.output_db}")
+        logger.info(
+            f"Starting libfec export --rpc: {self.libfec_path} -o {self.output_db}"
+        )
 
         # Create ready future to wait for ready notification
         self.ready_future = asyncio.Future()
@@ -117,7 +120,9 @@ class LibfecExportRpcClient:
                     # Cancel completion future if waiting
                     if self.completion_future and not self.completion_future.done():
                         self.completion_future.set_exception(
-                            RuntimeError("libfec process terminated before export completed")
+                            RuntimeError(
+                                "libfec process terminated before export completed"
+                            )
                         )
                     break
 
@@ -140,7 +145,7 @@ class LibfecExportRpcClient:
                                 RpcError(
                                     err.get("code", -1),
                                     err.get("message", "Unknown error"),
-                                    err.get("data")
+                                    err.get("data"),
                                 )
                             )
                         elif "result" in msg:
@@ -164,7 +169,10 @@ class LibfecExportRpcClient:
 
                             # Resolve completion future on terminal phases
                             if phase in ("complete", "canceled", "error"):
-                                if self.completion_future and not self.completion_future.done():
+                                if (
+                                    self.completion_future
+                                    and not self.completion_future.done()
+                                ):
                                     self.completion_future.set_result(params)
 
                         # Deliver to callback
@@ -172,7 +180,9 @@ class LibfecExportRpcClient:
                             try:
                                 self.progress_callback(msg)
                             except Exception as e:
-                                logger.error(f"Progress callback error: {e}", exc_info=True)
+                                logger.error(
+                                    f"Progress callback error: {e}", exc_info=True
+                                )
 
         except asyncio.CancelledError:
             logger.debug("Message listener cancelled")
@@ -181,10 +191,7 @@ class LibfecExportRpcClient:
             logger.error(f"Error in message listener: {e}", exc_info=True)
 
     async def send_request(
-        self,
-        method: str,
-        params: Optional[dict] = None,
-        timeout: float = 5.0
+        self, method: str, params: Optional[dict] = None, timeout: float = 5.0
     ) -> Any:
         """
         Send JSON-RPC request via stdin, wait for response.
@@ -266,9 +273,7 @@ class LibfecExportRpcClient:
         """
         self.progress_callback = progress_callback
 
-        params = {
-          "include_all_bulk": True
-        }
+        params = {"include_all_bulk": True}
         if filings is not None:
             params["filings"] = filings
         if cycle is not None:
@@ -279,7 +284,7 @@ class LibfecExportRpcClient:
             params["clobber"] = clobber
         if write_metadata:
             params["write_metadata"] = write_metadata
-        
+
         # Create completion future to wait for final notification
         self.completion_future = asyncio.Future()
 
@@ -305,7 +310,9 @@ class LibfecExportRpcClient:
 
         # Wait for completion notification with 300s timeout
         try:
-            completion_result = await asyncio.wait_for(self.completion_future, timeout=300.0)
+            completion_result = await asyncio.wait_for(
+                self.completion_future, timeout=300.0
+            )
 
             # Check if export completed with error
             if completion_result.get("phase") == "error":
@@ -348,7 +355,7 @@ class LibfecExportRpcClient:
             await self.terminate()
 
         # Cancel listener tasks
-        for task in [self.listen_task, getattr(self, 'stderr_task', None)]:
+        for task in [self.listen_task, getattr(self, "stderr_task", None)]:
             if task and not task.done():
                 task.cancel()
                 try:
@@ -371,7 +378,7 @@ class LibfecExportRpcClient:
             except Exception as e:
                 logger.error(f"Error terminating process: {e}")
 
-        for task in [self.listen_task, getattr(self, 'stderr_task', None)]:
+        for task in [self.listen_task, getattr(self, "stderr_task", None)]:
             if task and not task.done():
                 task.cancel()
                 try:

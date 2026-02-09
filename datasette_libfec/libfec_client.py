@@ -19,7 +19,7 @@ class LibfecClient:
         if bin_path:
             self.libfec_path = Path(bin_path)
         else:
-            self.libfec_path = Path(sys.executable).parent / 'libfec'
+            self.libfec_path = Path(sys.executable).parent / "libfec"
 
     async def _run_libfec_command_async(self, args):
         """Async command execution - doesn't block event loop"""
@@ -28,7 +28,7 @@ class LibfecClient:
             str(self.libfec_path),
             *args,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await process.communicate()
 
@@ -38,20 +38,20 @@ class LibfecClient:
 
     async def export(self, committee_id: str, cycle: int, output_db: str) -> str:
         """Export FEC data (async - won't block event loop)"""
-        return await self._run_libfec_command_async([
-            'export', committee_id,
-            '--election', str(cycle),
-            '-o', output_db
-          ])
+        return await self._run_libfec_command_async(
+            ["export", committee_id, "--election", str(cycle), "-o", output_db]
+        )
 
-    async def rss_watch(self, output_db: str, state: Optional[str] = None, cover_only: bool = True):
+    async def rss_watch(
+        self, output_db: str, state: Optional[str] = None, cover_only: bool = True
+    ):
         """Run single RSS watch command (async - won't block event loop)"""
-        args = ['rss', '--since', '1 day']
+        args = ["rss", "--since", "1 day"]
         if cover_only:
-            args.append('--cover-only')
-        args.extend(['-x', output_db])
+            args.append("--cover-only")
+        args.extend(["-x", output_db])
         if state:
-            args.extend(['--state', state])
+            args.extend(["--state", state])
         return await self._run_libfec_command_async(args)
 
     async def rss_watch_with_progress(
@@ -59,7 +59,7 @@ class LibfecClient:
         output_db: str,
         state: Optional[str],
         cover_only: bool,
-        watcher_state  # RssRuntimeState or similar with same attributes
+        watcher_state,  # RssRuntimeState or similar with same attributes
     ) -> None:
         """
         Run RSS watch using RPC mode with real-time progress tracking.
@@ -99,7 +99,8 @@ class LibfecClient:
 
                 # Update currently_syncing based on phase
                 watcher_state.currently_syncing = watcher_state.phase in (
-                    "fetching", "exporting"
+                    "fetching",
+                    "exporting",
                 )
 
         try:
@@ -112,7 +113,7 @@ class LibfecClient:
                 cover_only=cover_only,
                 output_path=output_db,
                 progress_callback=on_progress,
-                write_metadata=True
+                write_metadata=True,
             )
 
             # Mark as complete
@@ -155,7 +156,7 @@ class LibfecClient:
         cycle: Optional[int],
         cover_only: bool,
         clobber: bool,
-        export_state: ExportState
+        export_state: ExportState,
     ) -> None:
         """
         Run export using RPC mode with real-time progress tracking.
@@ -204,7 +205,7 @@ class LibfecClient:
                 cycle=cycle,
                 cover_only=cover_only,
                 clobber=clobber,
-                progress_callback=on_progress
+                progress_callback=on_progress,
             )
 
             # Mark as complete
@@ -272,7 +273,9 @@ class ExportState:
         self.running = False
 
         # Progress tracking fields for export RPC mode
-        self.phase: str = "idle"  # idle|sourcing|downloading_bulk|exporting|complete|canceled|error
+        self.phase: str = (
+            "idle"  # idle|sourcing|downloading_bulk|exporting|complete|canceled|error
+        )
         self.completed: int = 0
         self.total: int = 0
         self.current_filing_id: Optional[str] = None

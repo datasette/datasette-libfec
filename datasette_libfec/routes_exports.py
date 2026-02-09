@@ -40,9 +40,10 @@ class ExportDetailResponse(BaseModel):
 
 
 class ApiExportsListResponse(BaseModel):
-    status: Literal['success']
+    status: Literal["success"]
     exports: List[ExportRecord]
     message: Optional[str] = None
+
 
 @router.GET("/-/api/libfec/exports$", output=ApiExportsListResponse)
 @check_permission()
@@ -52,18 +53,17 @@ async def list_exports(datasette, request):
 
     # Check if the table exists
     try:
-        tables = await db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='libfec_exports'")
+        tables = await db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='libfec_exports'"
+        )
         if not tables.first():
-            return Response.json({
-                "status": "success",
-                "exports": [],
-                "message": "No exports yet"
-            })
+            return Response.json(
+                {"status": "success", "exports": [], "message": "No exports yet"}
+            )
     except Exception as e:
-        return Response.json({
-            "status": "error",
-            "message": f"Database error: {str(e)}"
-        }, status=500)
+        return Response.json(
+            {"status": "error", "message": f"Database error: {str(e)}"}, status=500
+        )
 
     try:
         exports_result = await db.execute("""
@@ -82,26 +82,26 @@ async def list_exports(datasette, request):
 
         exports = []
         for row in exports_result.rows:
-            exports.append({
-                "export_id": row[0],
-                "export_uuid": row[1],
-                "created_at": row[2],
-                "filings_count": row[3],
-                "cover_only": bool(row[4]),
-                "status": row[5],
-                "error_message": row[6]
-            })
-        return Response.json(ApiExportsListResponse(
-            status="success",
-            exports=exports
-        ).model_dump())
-
+            exports.append(
+                {
+                    "export_id": row[0],
+                    "export_uuid": row[1],
+                    "created_at": row[2],
+                    "filings_count": row[3],
+                    "cover_only": bool(row[4]),
+                    "status": row[5],
+                    "error_message": row[6],
+                }
+            )
+        return Response.json(
+            ApiExportsListResponse(status="success", exports=exports).model_dump()
+        )
 
     except Exception as e:
-        return Response.json({
-            "status": "error",
-            "message": f"Failed to fetch exports: {str(e)}"
-        }, status=500)
+        return Response.json(
+            {"status": "error", "message": f"Failed to fetch exports: {str(e)}"},
+            status=500,
+        )
 
 
 @router.GET("/-/api/libfec/exports/(?P<export_id>\\d+)")
@@ -113,7 +113,8 @@ async def get_export_detail(datasette, request, export_id: str):
 
     try:
         # Get export record
-        export_result = await db.execute("""
+        export_result = await db.execute(
+            """
             SELECT
                 export_id,
                 export_uuid,
@@ -124,14 +125,15 @@ async def get_export_detail(datasette, request, export_id: str):
                 error_message
             FROM libfec_exports
             WHERE export_id = ?
-        """, [export_id_int])
+        """,
+            [export_id_int],
+        )
 
         export_row = export_result.first()
         if not export_row:
-            return Response.json({
-                "status": "error",
-                "message": "Export not found"
-            }, status=404)
+            return Response.json(
+                {"status": "error", "message": "Export not found"}, status=404
+            )
 
         export = {
             "export_id": export_row[0],
@@ -140,13 +142,14 @@ async def get_export_detail(datasette, request, export_id: str):
             "filings_count": export_row[3],
             "cover_only": bool(export_row[4]),
             "status": export_row[5],
-            "error_message": export_row[6]
+            "error_message": export_row[6],
         }
 
         # Get inputs with their resolved filing IDs
         inputs = []
         try:
-            inputs_result = await db.execute("""
+            inputs_result = await db.execute(
+                """
                 SELECT
                     i.id,
                     i.input_type,
@@ -158,7 +161,9 @@ async def get_export_detail(datasette, request, export_id: str):
                 FROM libfec_export_inputs i
                 WHERE i.export_id = ?
                 ORDER BY i.id
-            """, [export_id_int])
+            """,
+                [export_id_int],
+            )
 
             for row in inputs_result.rows:
                 input_record = {
@@ -169,15 +174,18 @@ async def get_export_detail(datasette, request, export_id: str):
                     "office": row[4],
                     "state": row[5],
                     "district": row[6],
-                    "filing_ids": []
+                    "filing_ids": [],
                 }
 
                 # Get filing IDs for this input
-                filings_for_input = await db.execute("""
+                filings_for_input = await db.execute(
+                    """
                     SELECT filing_id
                     FROM libfec_export_input_filings
                     WHERE input_id = ?
-                """, [row[0]])
+                """,
+                    [row[0]],
+                )
 
                 input_record["filing_ids"] = [f[0] for f in filings_for_input.rows]
                 inputs.append(input_record)
@@ -189,7 +197,8 @@ async def get_export_detail(datasette, request, export_id: str):
         # Get filings with their success/failure status
         filings = []
         try:
-            filings_result = await db.execute("""
+            filings_result = await db.execute(
+                """
                 SELECT
                     filing_id,
                     success,
@@ -197,27 +206,29 @@ async def get_export_detail(datasette, request, export_id: str):
                 FROM libfec_export_filings
                 WHERE export_id = ?
                 ORDER BY filing_id
-            """, [export_id_int])
+            """,
+                [export_id_int],
+            )
 
             for row in filings_result.rows:
-                filings.append({
-                    "filing_id": row[0],
-                    "success": bool(row[1]),
-                    "message": row[2]
-                })
+                filings.append(
+                    {"filing_id": row[0], "success": bool(row[1]), "message": row[2]}
+                )
         except Exception:
             # Table might not exist
             pass
 
-        return Response.json({
-            "status": "success",
-            "export": export,
-            "inputs": inputs,
-            "filings": filings
-        })
+        return Response.json(
+            {
+                "status": "success",
+                "export": export,
+                "inputs": inputs,
+                "filings": filings,
+            }
+        )
 
     except Exception as e:
-        return Response.json({
-            "status": "error",
-            "message": f"Failed to fetch export detail: {str(e)}"
-        }, status=500)
+        return Response.json(
+            {"status": "error", "message": f"Failed to fetch export detail: {str(e)}"},
+            status=500,
+        )

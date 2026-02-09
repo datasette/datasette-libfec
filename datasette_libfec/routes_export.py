@@ -28,11 +28,14 @@ class ExportResponse(BaseModel):
 @check_write_permission()
 async def export_start(datasette, request, params: Body[ExportStartParams]):
     if export_state.running:
-        return Response.json({
-            "status": "error",
-            "message": "Export already in progress",
-            "phase": export_state.phase
-        }, status=400)
+        return Response.json(
+            {
+                "status": "error",
+                "message": "Export already in progress",
+                "phase": export_state.phase,
+            },
+            status=400,
+        )
 
     # Get output database
     output_db = get_libfec_database(datasette)
@@ -45,7 +48,7 @@ async def export_start(datasette, request, params: Body[ExportStartParams]):
             cycle=params.cycle,
             cover_only=params.cover_only,
             clobber=params.clobber,
-            export_state=export_state
+            export_state=export_state,
         )
 
     export_state.export_id = f"export-{uuid.uuid4()}"
@@ -59,7 +62,7 @@ async def export_start(datasette, request, params: Body[ExportStartParams]):
             status="success",
             message="Export started",
             export_id=export_state.export_id,
-            phase=export_state.phase
+            phase=export_state.phase,
         ).model_dump()
     )
 
@@ -110,10 +113,9 @@ async def export_status(datasette, request):
 @check_write_permission()
 async def export_cancel(datasette, request):
     if not export_state.running:
-        return Response.json({
-            "status": "error",
-            "message": "No export in progress"
-        }, status=400)
+        return Response.json(
+            {"status": "error", "message": "No export in progress"}, status=400
+        )
 
     # Cancel RPC export if in progress
     if export_state.rpc_client:
@@ -127,6 +129,6 @@ async def export_cancel(datasette, request):
             status="success",
             message="Export canceled",
             export_id=export_state.export_id,
-            phase="canceled"
+            phase="canceled",
         ).model_dump()
     )

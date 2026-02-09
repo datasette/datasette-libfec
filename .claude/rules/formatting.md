@@ -1,9 +1,9 @@
 # Formatting
 
-After editing any `.svelte` or `.ts` files in the `frontend/` directory, run Prettier to format them:
+After editing files, run the appropriate formatter:
 
-```bash
-just format
-```
+- **Python files** (`.py`): `just format-backend` (uses ruff)
+- **Frontend files** (`.svelte`, `.ts`): `just format-frontend` (uses Prettier)
+- **Both**: `just format`
 
-This ensures consistent code style across all frontend files.
+Always run `just format` after editing code to ensure consistent style.
