@@ -49,6 +49,7 @@
   <div> 
     <a href="https://www.fec.gov/data/elections/house/{pageData.state}/{pageData.district}/{pageData.cycle}/" target="_blank" rel="noopener noreferrer">
       fec.gov 
+    </a>
   </div>
 
   {#if pageData.error}
