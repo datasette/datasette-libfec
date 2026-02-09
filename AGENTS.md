@@ -40,6 +40,7 @@ A Datasette plugin for importing FEC (Federal Election Commission) data using th
 - Svelte 5 (with runes/signals for reactivity)
 - TypeScript with strict mode
 - Vite 7 for dev server + bundling
+- Prettier for code formatting
 - openapi-fetch for type-safe API calls
 
 **Structure:**
@@ -83,6 +84,8 @@ just types  # Generate frontend/api.d.ts from OpenAPI schema
 | `just types-watch` | Watch and regenerate types on Python changes |
 | `just frontend` | Build production frontend bundle |
 | `just frontend-dev` | Start Vite dev server (port 5177) |
+| `just format` | Format frontend code with Prettier |
+| `just format-check` | Check frontend code formatting |
 | `just dev` | Run Datasette on port 8004 |
 | `just dev-with-hmr` | Run Datasette with HMR + auto-restart on file changes |
 
@@ -116,3 +119,5 @@ Test file: `tests/test_libfec.py`
 - openapi-fetch ^0.15.0
 - typescript ~5.9.3
 - svelte-check ^4.3.4
+- prettier ^3.8.1
+- prettier-plugin-svelte ^3.4.1

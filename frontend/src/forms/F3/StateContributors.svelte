@@ -12,75 +12,73 @@
   let { contributions, homeState }: Props = $props();
 
   const STATE_NAMES: Record<string, string> = {
-    AL: "Alabama",
-    AK: "Alaska",
-    AZ: "Arizona",
-    AR: "Arkansas",
-    CA: "California",
-    CO: "Colorado",
-    CT: "Connecticut",
-    DE: "Delaware",
-    FL: "Florida",
-    GA: "Georgia",
-    HI: "Hawaii",
-    ID: "Idaho",
-    IL: "Illinois",
-    IN: "Indiana",
-    IA: "Iowa",
-    KS: "Kansas",
-    KY: "Kentucky",
-    LA: "Louisiana",
-    ME: "Maine",
-    MD: "Maryland",
-    MA: "Massachusetts",
-    MI: "Michigan",
-    MN: "Minnesota",
-    MS: "Mississippi",
-    MO: "Missouri",
-    MT: "Montana",
-    NE: "Nebraska",
-    NV: "Nevada",
-    NH: "New Hampshire",
-    NJ: "New Jersey",
-    NM: "New Mexico",
-    NY: "New York",
-    NC: "North Carolina",
-    ND: "North Dakota",
-    OH: "Ohio",
-    OK: "Oklahoma",
-    OR: "Oregon",
-    PA: "Pennsylvania",
-    RI: "Rhode Island",
-    SC: "South Carolina",
-    SD: "South Dakota",
-    TN: "Tennessee",
-    TX: "Texas",
-    UT: "Utah",
-    VT: "Vermont",
-    VA: "Virginia",
-    WA: "Washington",
-    WV: "West Virginia",
-    WI: "Wisconsin",
-    WY: "Wyoming",
-    DC: "District of Columbia",
-    PR: "Puerto Rico",
-    VI: "Virgin Islands",
-    GU: "Guam",
+    AL: 'Alabama',
+    AK: 'Alaska',
+    AZ: 'Arizona',
+    AR: 'Arkansas',
+    CA: 'California',
+    CO: 'Colorado',
+    CT: 'Connecticut',
+    DE: 'Delaware',
+    FL: 'Florida',
+    GA: 'Georgia',
+    HI: 'Hawaii',
+    ID: 'Idaho',
+    IL: 'Illinois',
+    IN: 'Indiana',
+    IA: 'Iowa',
+    KS: 'Kansas',
+    KY: 'Kentucky',
+    LA: 'Louisiana',
+    ME: 'Maine',
+    MD: 'Maryland',
+    MA: 'Massachusetts',
+    MI: 'Michigan',
+    MN: 'Minnesota',
+    MS: 'Mississippi',
+    MO: 'Missouri',
+    MT: 'Montana',
+    NE: 'Nebraska',
+    NV: 'Nevada',
+    NH: 'New Hampshire',
+    NJ: 'New Jersey',
+    NM: 'New Mexico',
+    NY: 'New York',
+    NC: 'North Carolina',
+    ND: 'North Dakota',
+    OH: 'Ohio',
+    OK: 'Oklahoma',
+    OR: 'Oregon',
+    PA: 'Pennsylvania',
+    RI: 'Rhode Island',
+    SC: 'South Carolina',
+    SD: 'South Dakota',
+    TN: 'Tennessee',
+    TX: 'Texas',
+    UT: 'Utah',
+    VT: 'Vermont',
+    VA: 'Virginia',
+    WA: 'Washington',
+    WV: 'West Virginia',
+    WI: 'Wisconsin',
+    WY: 'Wyoming',
+    DC: 'District of Columbia',
+    PR: 'Puerto Rico',
+    VI: 'Virgin Islands',
+    GU: 'Guam',
   };
 
   function usd(value: number | null | undefined): string {
-    if (value == null) return "$0";
-    return "$" + value.toLocaleString();
+    if (value == null) return '$0';
+    return '$' + value.toLocaleString();
   }
 
   const total = $derived(
-    contributions.reduce((sum, row) => sum + (row.total_contributions || 0), 0),
+    contributions.reduce((sum, row) => sum + (row.total_contributions || 0), 0)
   );
   const top5 = $derived(contributions.slice(0, 5));
   const other = $derived(
-    contributions
-      .slice(5)
-      .reduce((sum, row) => sum + (row.total_contributions || 0), 0),
+    contributions.slice(5).reduce((sum, row) => sum + (row.total_contributions || 0), 0)
   );
 </script>
 
@@ -113,9 +111,7 @@
           {/each}
           {#if other > 0}
             <tr class="other-row">
-              <td class="muted italic"
-                >Other ({contributions.length - 5} states)</td
-              >
+              <td class="muted italic">Other ({contributions.length - 5} states)</td>
               <td class="text-right muted">{usd(other)}</td>
               <td class="text-right muted">
                 {((other / total) * 100).toFixed(1)}%

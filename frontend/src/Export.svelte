@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { loadPageData } from "./page_data/load.ts";
+  import { loadPageData } from './page_data/load.ts';
 
   interface ExportFilingInfo {
     filing_id: string;
@@ -44,21 +44,31 @@
 
   function getStatusClass(status: string | null): string {
     switch (status) {
-      case 'complete': return 'status-complete';
-      case 'error': return 'status-error';
-      case 'canceled': return 'status-canceled';
-      case 'started': return 'status-running';
-      default: return '';
+      case 'complete':
+        return 'status-complete';
+      case 'error':
+        return 'status-error';
+      case 'canceled':
+        return 'status-canceled';
+      case 'started':
+        return 'status-running';
+      default:
+        return '';
     }
   }
 
   function getInputTypeLabel(type: string): string {
     switch (type) {
-      case 'committee': return 'Committee';
-      case 'committee_cycle': return 'Committee + Cycle';
-      case 'committee_filing': return 'Filing';
-      case 'candidate': return 'Candidate';
-      default: return type;
+      case 'committee':
+        return 'Committee';
+      case 'committee_cycle':
+        return 'Committee + Cycle';
+      case 'committee_filing':
+        return 'Filing';
+      case 'candidate':
+        return 'Candidate';
+      default:
+        return type;
     }
   }
 
@@ -79,8 +89,7 @@
 
 <div class="export-detail">
   <nav class="breadcrumb">
-    <a href="/-/libfec">FEC Data</a> /
-    Export #{pageData.export_id}
+    <a href="/-/libfec">FEC Data</a> / Export #{pageData.export_id}
   </nav>
 
   <header>

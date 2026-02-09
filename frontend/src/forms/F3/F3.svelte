@@ -11,7 +11,7 @@
   // F3 form data from database - extends InputRow with additional summary fields
   export interface F3FormData extends InputRow {
     report_code: string;
-    
+
     // Summary totals
     col_a_total_disbursements: number | null;
 
@@ -49,9 +49,11 @@
   const dbName = get(databaseName);
 
   // Check if formData has the required fields for the Sankey diagram
-  const hasSankeyData = $derived(formData &&
-    formData.col_a_total_receipts != null &&
-    (formData.col_a_total_receipts > 0 || formData.col_a_operating_expenditures > 0));
+  const hasSankeyData = $derived(
+    formData &&
+      formData.col_a_total_receipts != null &&
+      (formData.col_a_total_receipts > 0 || formData.col_a_operating_expenditures > 0)
+  );
 
   // F3FormData extends InputRow, so it's compatible with the Sankey component
   const sankeyItems: InputRow[] = $derived(hasSankeyData && formData ? [formData] : []);
@@ -64,7 +66,8 @@
   }
 
   const cashChange = $derived(
-    (formData.col_a_cash_on_hand_close_of_period ?? 0) - (formData.col_a_cash_beginning_reporting_period ?? 0)
+    (formData.col_a_cash_on_hand_close_of_period ?? 0) -
+      (formData.col_a_cash_beginning_reporting_period ?? 0)
   );
 
   // Schedule data
@@ -176,8 +179,12 @@
           <thead>
             <tr>
               <th></th>
-              <th class="col-header">Column A<br><span class="col-subheader">This Period</span></th>
-              <th class="col-header">Column B<br><span class="col-subheader">Election Cycle-To-Date</span></th>
+              <th class="col-header"
+                >Column A<br /><span class="col-subheader">This Period</span></th
+              >
+              <th class="col-header"
+                >Column B<br /><span class="col-subheader">Election Cycle-To-Date</span></th
+              >
             </tr>
           </thead>
           <tbody>
@@ -294,7 +301,7 @@
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 1rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .card-label {
@@ -355,7 +362,7 @@
 
   .table-container {
     overflow-x: auto;
-    
+
     display: flex;
     justify-content: center;
   }

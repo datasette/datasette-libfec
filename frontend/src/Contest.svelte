@@ -1,13 +1,13 @@
 <script lang="ts">
-  import type { ContestPageData, Candidate } from "./page_data/ContestPageData.types.ts";
-  import { loadPageData } from "./page_data/load.ts";
+  import type { ContestPageData, Candidate } from './page_data/ContestPageData.types.ts';
+  import { loadPageData } from './page_data/load.ts';
 
   const pageData = loadPageData<ContestPageData>();
 
   const officeNames: Record<string, string> = {
-    'H': 'House',
-    'S': 'Senate',
-    'P': 'President'
+    H: 'House',
+    S: 'Senate',
+    P: 'President',
   };
 
   function formatCurrency(value: number | null | undefined): string {
@@ -15,7 +15,7 @@
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(value);
   }
 
@@ -46,15 +46,20 @@
       <a href="/-/libfec">FEC Data</a> &rarr; Contest
     </div>
   </div>
-  <div> 
-    <a href="https://www.fec.gov/data/elections/house/{pageData.state}/{pageData.district}/{pageData.cycle}/" target="_blank" rel="noopener noreferrer">
-      fec.gov 
+  <div>
+    <a
+      href="https://www.fec.gov/data/elections/house/{pageData.state}/{pageData.district}/{pageData.cycle}/"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      fec.gov
     </a>
   </div>
 
   {#if pageData.error}
     <div class="error-box">
-      <strong>Error:</strong> {pageData.error}
+      <strong>Error:</strong>
+      {pageData.error}
     </div>
   {/if}
 
@@ -72,11 +77,17 @@
             <th>Coverage Through</th>
             <th class="numeric">
               Cash on Hand
-              <span class="info-icon" title="Form F3 Line 27, Cash on Hand at close of reporting period">i</span>
+              <span
+                class="info-icon"
+                title="Form F3 Line 27, Cash on Hand at close of reporting period">i</span
+              >
             </th>
             <th class="numeric">
               Spent This Cycle
-              <span class="info-icon" title="Form F3 Line 22, Total disbursements for entire election cycle">i</span>
+              <span
+                class="info-icon"
+                title="Form F3 Line 22, Total disbursements for entire election cycle">i</span
+              >
             </th>
           </tr>
         </thead>

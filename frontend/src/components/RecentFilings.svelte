@@ -19,7 +19,9 @@
   }
 
   const queryResp = useQuery<Filing[]>(() =>
-    query(databaseName, `
+    query(
+      databaseName,
+      `
       SELECT
         *
       FROM
@@ -27,7 +29,8 @@
       ORDER BY
         filing_id DESC
       LIMIT 100
-    `)
+    `
+    )
   );
 
   const filings = $derived(queryResp.data);
@@ -40,7 +43,7 @@
     return Temporal.PlainDate.from(dateStr).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 </script>
@@ -76,13 +79,17 @@
         </thead>
         <tbody>
           {#each filings as filing}
-            <tr class="filing-row" onclick={() => window.location.href = `/-/libfec/filing/${filing.filing_id}`}>
+            <tr
+              class="filing-row"
+              onclick={() => (window.location.href = `/-/libfec/filing/${filing.filing_id}`)}
+            >
               <td class="filing-id">{filing.filing_id}</td>
               <td>{filing.filer_name}</td>
               <td>{filing.report_code}</td>
               <td class="form-type">{filing.cover_record_form}</td>
               <td>{filing.coverage_from_date ? formatDate(filing.coverage_from_date) : ''}</td>
-              <td>{filing.coverage_through_date ? formatDate(filing.coverage_through_date) : ''}</td>
+              <td>{filing.coverage_through_date ? formatDate(filing.coverage_through_date) : ''}</td
+              >
             </tr>
           {/each}
         </tbody>

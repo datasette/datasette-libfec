@@ -94,7 +94,8 @@
           <address>
             {formData.affiliated_street_1}<br />
             {#if formData.affiliated_street_2}{formData.affiliated_street_2}<br />{/if}
-            {formData.affiliated_city}, {formData.affiliated_state} {formData.affiliated_zip_code}
+            {formData.affiliated_city}, {formData.affiliated_state}
+            {formData.affiliated_zip_code}
           </address>
         {/if}
       </div>
@@ -118,7 +119,8 @@
           <address>
             {formData.agent_street_1}<br />
             {#if formData.agent_street_2}{formData.agent_street_2}<br />{/if}
-            {formData.agent_city}, {formData.agent_state} {formData.agent_zip_code}
+            {formData.agent_city}, {formData.agent_state}
+            {formData.agent_zip_code}
           </address>
         {/if}
       </div>

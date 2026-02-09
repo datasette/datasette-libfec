@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import createClient from "openapi-fetch";
-  import type { paths } from "../../api.d.ts";
+  import createClient from 'openapi-fetch';
+  import type { paths } from '../../api.d.ts';
   import SearchMultiSelect, { type SelectedItem } from '../components/SearchMultiSelect.svelte';
 
-  const client = createClient<paths>({ baseUrl: "/" });
+  const client = createClient<paths>({ baseUrl: '/' });
 
   interface ExportStatus {
     export_id?: string;
@@ -38,8 +38,8 @@
     return input
       .toUpperCase()
       .split(/[\s,]+/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
   }
 
   function validateContests(input: string): { valid: boolean; codes: string[]; errors: string[] } {
@@ -69,10 +69,12 @@
 
   function isActivelyExporting(): boolean {
     console.log(exportStatus?.phase);
-    return exportStatus != null &&
-           (exportStatus.phase === 'sourcing' ||
-            exportStatus.phase === 'downloading_bulk' ||
-            exportStatus.phase === 'exporting');
+    return (
+      exportStatus != null &&
+      (exportStatus.phase === 'sourcing' ||
+        exportStatus.phase === 'downloading_bulk' ||
+        exportStatus.phase === 'exporting')
+    );
   }
 
   onMount(() => {
@@ -87,7 +89,7 @@
 
   async function loadExportStatus() {
     try {
-      const {data, error} = await client.GET("/-/api/libfec/export/status");
+      const { data, error } = await client.GET('/-/api/libfec/export/status');
       if (data && !error) {
         const status = data as unknown as ExportStatus;
         exportStatus = status;
@@ -110,42 +112,42 @@
   }
 
   function formatProgress(): string {
-    if (!exportStatus) return "Idle";
+    if (!exportStatus) return 'Idle';
 
-    const phase = exportStatus.phase || "idle";
+    const phase = exportStatus.phase || 'idle';
 
     switch (phase) {
-      case "idle":
-        return "Idle";
-      case "sourcing":
+      case 'idle':
+        return 'Idle';
+      case 'sourcing':
         if (exportStatus.total && exportStatus.total > 0) {
           const count = exportStatus.completed || 0;
           const total = exportStatus.total;
           return `Finding filings: ${count}/${total}`;
         }
-        return "Finding filings...";
-      case "downloading_bulk":
+        return 'Finding filings...';
+      case 'downloading_bulk':
         if (exportStatus.total && exportStatus.total > 0) {
           const count = exportStatus.completed || 0;
           const total = exportStatus.total;
           const percent = Math.round((count / total) * 100);
           return `Downloading: ${count}/${total} (${percent}%)`;
         }
-        return "Downloading bulk data...";
-      case "exporting":
+        return 'Downloading bulk data...';
+      case 'exporting':
         if (exportStatus.total && exportStatus.total > 0) {
           const count = exportStatus.completed || 0;
           const total = exportStatus.total;
           const percent = Math.round((count / total) * 100);
           return `Exporting: ${count}/${total} filings (${percent}%)`;
         }
-        return "Exporting filings...";
-      case "complete":
+        return 'Exporting filings...';
+      case 'complete':
         return `Complete: ${exportStatus.total_exported || 0} filings exported`;
-      case "canceled":
-        return "Export canceled";
-      case "error":
-        return "Error";
+      case 'canceled':
+        return 'Export canceled';
+      case 'error':
+        return 'Error';
       default:
         return phase;
     }
@@ -165,7 +167,7 @@
         alert('Please select a candidate or committee to import.');
         return;
       }
-      filingIds = selectedSearchItems.map(item => item.id);
+      filingIds = selectedSearchItems.map((item) => item.id);
     } else {
       // Contests mode
       if (contestsInput.trim() === '') {
@@ -182,11 +184,11 @@
 
     isLoading = true;
     try {
-      const {error} = await client.POST("/-/api/libfec/export/start", {
+      const { error } = await client.POST('/-/api/libfec/export/start', {
         body: {
           filings: filingIds,
-          cycle: cycle
-        }
+          cycle: cycle,
+        },
       });
       if (error) {
         alert(`Error starting import: ${JSON.stringify(error)}`);
@@ -211,7 +213,7 @@
   async function cancelExport() {
     isLoading = true;
     try {
-      const {error} = await client.POST("/-/api/libfec/export/cancel", {});
+      const { error } = await client.POST('/-/api/libfec/export/cancel', {});
       if (error) {
         alert(`Error canceling export: ${JSON.stringify(error)}`);
         return;
@@ -258,18 +260,14 @@
 
         {#if exportStatus.phase === 'error' && exportStatus.error_message}
           <div class="error-message">
-            <strong>Error:</strong> {exportStatus.error_message}
+            <strong>Error:</strong>
+            {exportStatus.error_message}
           </div>
         {/if}
       </div>
 
-      <button
-        type="button"
-        class="button-danger"
-        disabled={isLoading}
-        onclick={cancelExport}
-      >
-        {isLoading ? "Canceling..." : "Cancel Export"}
+      <button type="button" class="button-danger" disabled={isLoading} onclick={cancelExport}>
+        {isLoading ? 'Canceling...' : 'Cancel Export'}
       </button>
     </div>
   {:else}
@@ -309,7 +307,7 @@
             type="button"
             class="mode-btn"
             class:active={importMode === 'search'}
-            onclick={() => importMode = 'search'}
+            onclick={() => (importMode = 'search')}
           >
             Candidates / Committees
           </button>
@@ -317,7 +315,7 @@
             type="button"
             class="mode-btn"
             class:active={importMode === 'contests'}
-            onclick={() => importMode = 'contests'}
+            onclick={() => (importMode = 'contests')}
           >
             Contests
           </button>
@@ -327,10 +325,12 @@
       {#if importMode === 'search'}
         <!-- Search Component -->
         <div class="form-group">
-          <div style="font-weight: bold; margin-bottom: 0.5em;">Search for Candidate or Committee</div>
+          <div style="font-weight: bold; margin-bottom: 0.5em;">
+            Search for Candidate or Committee
+          </div>
           <SearchMultiSelect
             bind:selected={selectedSearchItems}
-            cycle={cycle}
+            {cycle}
             placeholder="Search for candidate or committee..."
             onselect={handleSearchSelection}
           />
@@ -339,9 +339,7 @@
       {:else}
         <!-- Contests Input -->
         <div class="form-group">
-          <label for="contests">
-            Contest Codes
-          </label>
+          <label for="contests"> Contest Codes </label>
           <input
             type="text"
             id="contests"
@@ -360,14 +358,8 @@
 
       <!-- Cycle Input -->
       <div class="form-group">
-        <label for="cycle">
-          Election Cycle
-        </label>
-        <select
-          id="cycle"
-          name="cycle"
-          bind:value={cycle}
-        >
+        <label for="cycle"> Election Cycle </label>
+        <select id="cycle" name="cycle" bind:value={cycle}>
           <option value={2026}>2026</option>
           <option value={2024}>2024</option>
           <option value={2022}>2022</option>
@@ -377,9 +369,12 @@
       <!-- Submit Button -->
       <button
         type="submit"
-        disabled={isLoading || (importMode === 'search' ? selectedSearchItems.length === 0 : contestsInput.trim() === '' || contestsValidationError !== null)}
+        disabled={isLoading ||
+          (importMode === 'search'
+            ? selectedSearchItems.length === 0
+            : contestsInput.trim() === '' || contestsValidationError !== null)}
       >
-        {isLoading ? "Starting..." : "Import Data"}
+        {isLoading ? 'Starting...' : 'Import Data'}
       </button>
     </form>
   {/if}
@@ -401,7 +396,7 @@
   }
 
   .form-group select,
-  .form-group input[type="text"] {
+  .form-group input[type='text'] {
     max-width: 400px;
     padding: 0.5em;
     font-size: 1em;
@@ -411,7 +406,7 @@
     box-sizing: border-box;
   }
 
-  .form-group input[type="text"].invalid {
+  .form-group input[type='text'].invalid {
     border-color: #dc3545;
   }
 
@@ -433,7 +428,9 @@
     border: none;
     border-right: 1px solid #ccc;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s;
+    transition:
+      background 0.2s,
+      color 0.2s;
   }
 
   .mode-btn:last-child {

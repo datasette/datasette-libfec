@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import createClient from "openapi-fetch";
-    import type { paths } from "../../api.d.ts";
+  import createClient from 'openapi-fetch';
+  import type { paths } from '../../api.d.ts';
 
   interface ExportRecord {
     export_id: number;
@@ -40,7 +40,7 @@
     message?: string;
   }
 
-  const client = createClient<paths>({ baseUrl: "/" });
+  const client = createClient<paths>({ baseUrl: '/' });
 
   let exports = $state<ExportRecord[]>([]);
   let loading = $state(true);
@@ -56,9 +56,9 @@
     loading = true;
     error = null;
     try {
-      const { data, error: fetchError } = await client.GET("/-/api/libfec/exports")
+      const { data, error: fetchError } = await client.GET('/-/api/libfec/exports');
       if (fetchError) {
-        error = "Failed to load exports";
+        error = 'Failed to load exports';
       } else if (data) {
         exports = (data as unknown as ExportsListResponse).exports || [];
       }
@@ -72,20 +72,22 @@
   async function loadExportDetail(exportId: number) {
     loadingDetail = true;
     try {
-      const { data } = await client.GET(`/-/api/libfec/exports/{export_id}`, { params: { path: { export_id: exportId.toString() } } });
+      const { data } = await client.GET(`/-/api/libfec/exports/{export_id}`, {
+        params: { path: { export_id: exportId.toString() } },
+      });
       if (data) {
         const response = data as unknown as ExportDetail;
-        if (response.status === "success" && response.export) {
+        if (response.status === 'success' && response.export) {
           selectedExport = response;
         } else {
-          console.error("Invalid export detail response:", data);
+          console.error('Invalid export detail response:', data);
           selectedExport = null;
         }
       } else {
         selectedExport = null;
       }
     } catch (e) {
-      console.error("Failed to load export detail:", e);
+      console.error('Failed to load export detail:', e);
       selectedExport = null;
     } finally {
       loadingDetail = false;
@@ -99,11 +101,16 @@
 
   function getStatusClass(status: string): string {
     switch (status) {
-      case 'complete': return 'status-complete';
-      case 'error': return 'status-error';
-      case 'canceled': return 'status-canceled';
-      case 'started': return 'status-running';
-      default: return '';
+      case 'complete':
+        return 'status-complete';
+      case 'error':
+        return 'status-error';
+      case 'canceled':
+        return 'status-canceled';
+      case 'started':
+        return 'status-running';
+      default:
+        return '';
     }
   }
 
@@ -116,7 +123,7 @@
   <div class="header">
     <h2>Export History</h2>
     <button type="button" class="refresh-btn" onclick={loadExports} disabled={loading}>
-      {loading ? "Loading..." : "Refresh"}
+      {loading ? 'Loading...' : 'Refresh'}
     </button>
   </div>
 
@@ -140,7 +147,11 @@
         </thead>
         <tbody>
           {#each exports as exp}
-            <tr class:selected={selectedExport && selectedExport.export && selectedExport.export.export_id === exp.export_id}>
+            <tr
+              class:selected={selectedExport &&
+                selectedExport.export &&
+                selectedExport.export.export_id === exp.export_id}
+            >
               <td class="date-cell">{formatDate(exp.created_at)}</td>
               <td>
                 <span class="status-badge {getStatusClass(exp.status)}">
@@ -148,7 +159,7 @@
                 </span>
               </td>
               <td class="count-cell">{exp.filings_count}</td>
-              <td class="bool-cell">{exp.cover_only ? "Yes" : "No"}</td>
+              <td class="bool-cell">{exp.cover_only ? 'Yes' : 'No'}</td>
               <td class="action-cell">
                 <button
                   type="button"
@@ -190,7 +201,7 @@
             <dt>Filings Count</dt>
             <dd>{selectedExport.export.filings_count}</dd>
             <dt>Cover Only</dt>
-            <dd>{selectedExport.export.cover_only ? "Yes" : "No"}</dd>
+            <dd>{selectedExport.export.cover_only ? 'Yes' : 'No'}</dd>
             {#if selectedExport.export.error_message}
               <dt>Error</dt>
               <dd class="error-text">{selectedExport.export.error_message}</dd>
@@ -291,7 +302,8 @@
     cursor: not-allowed;
   }
 
-  .loading, .empty {
+  .loading,
+  .empty {
     padding: 2em;
     text-align: center;
     color: #6c757d;
@@ -341,7 +353,8 @@
     white-space: nowrap;
   }
 
-  .count-cell, .bool-cell {
+  .count-cell,
+  .bool-cell {
     text-align: center;
   }
 

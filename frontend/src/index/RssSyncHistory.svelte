@@ -60,7 +60,7 @@
     loading = true;
     error = null;
     try {
-      const response = await fetch("/-/api/libfec/rss/syncs");
+      const response = await fetch('/-/api/libfec/rss/syncs');
       const data = await response.json();
       if (typeof data === 'string') {
         const parsed = JSON.parse(data) as RssSyncsListResponse;
@@ -79,15 +79,15 @@
     loadingDetail = true;
     try {
       const response = await fetch(`/-/api/libfec/rss/syncs/${syncId}`);
-      const data = await response.json() as RssSyncDetail;
-      if (data.status === "success" && data.sync) {
+      const data = (await response.json()) as RssSyncDetail;
+      if (data.status === 'success' && data.sync) {
         selectedSync = data;
       } else {
-        console.error("Invalid sync detail response:", data);
+        console.error('Invalid sync detail response:', data);
         selectedSync = null;
       }
     } catch (e) {
-      console.error("Failed to load sync detail:", e);
+      console.error('Failed to load sync detail:', e);
       selectedSync = null;
     } finally {
       loadingDetail = false;
@@ -101,11 +101,16 @@
 
   function getStatusClass(status: string): string {
     switch (status) {
-      case 'complete': return 'status-complete';
-      case 'error': return 'status-error';
-      case 'canceled': return 'status-canceled';
-      case 'started': return 'status-running';
-      default: return '';
+      case 'complete':
+        return 'status-complete';
+      case 'error':
+        return 'status-error';
+      case 'canceled':
+        return 'status-canceled';
+      case 'started':
+        return 'status-running';
+      default:
+        return '';
     }
   }
 
@@ -129,7 +134,7 @@
   <div class="header">
     <h2>RSS Sync History</h2>
     <button type="button" class="refresh-btn" onclick={loadSyncs} disabled={loading}>
-      {loading ? "Loading..." : "Refresh"}
+      {loading ? 'Loading...' : 'Refresh'}
     </button>
   </div>
 
@@ -154,7 +159,11 @@
         </thead>
         <tbody>
           {#each syncs as sync}
-            <tr class:selected={selectedSync && selectedSync.sync && selectedSync.sync.sync_id === sync.sync_id}>
+            <tr
+              class:selected={selectedSync &&
+                selectedSync.sync &&
+                selectedSync.sync.sync_id === sync.sync_id}
+            >
               <td class="date-cell">{formatDate(sync.created_at)}</td>
               <td>
                 <span class="status-badge {getStatusClass(sync.status)}">
@@ -221,7 +230,7 @@
             <dt>Exported</dt>
             <dd>{selectedSync.sync.exported_count}</dd>
             <dt>Cover Only</dt>
-            <dd>{selectedSync.sync.cover_only ? "Yes" : "No"}</dd>
+            <dd>{selectedSync.sync.cover_only ? 'Yes' : 'No'}</dd>
             {#if selectedSync.sync.error_message}
               <dt>Error</dt>
               <dd class="error-text">{selectedSync.sync.error_message}</dd>
@@ -256,7 +265,10 @@
                 </thead>
                 <tbody>
                   {#each selectedSync.filings as filing}
-                    <tr class:success={filing.export_success} class:failure={!filing.export_success}>
+                    <tr
+                      class:success={filing.export_success}
+                      class:failure={!filing.export_success}
+                    >
                       <td>
                         <a href="/-/libfec/filing/{filing.filing_id}" target="_blank">
                           {filing.filing_id}
@@ -329,7 +341,8 @@
     cursor: not-allowed;
   }
 
-  .loading, .empty {
+  .loading,
+  .empty {
     padding: 2em;
     text-align: center;
     color: #6c757d;

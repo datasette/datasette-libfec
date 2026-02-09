@@ -1,8 +1,8 @@
-import { mount } from 'svelte'
-import Import from './Import.svelte'
+import { mount } from 'svelte';
+import Import from './Import.svelte';
 
 const app = mount(Import, {
   target: document.getElementById('app-root')!,
-})
+});
 
-export default app
+export default app;

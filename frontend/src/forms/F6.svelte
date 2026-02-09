@@ -81,7 +81,8 @@
         <address>
           {formData.street_1}<br />
           {#if formData.street_2}{formData.street_2}<br />{/if}
-          {formData.city}, {formData.state} {formData.zip_code}
+          {formData.city}, {formData.state}
+          {formData.zip_code}
         </address>
       </div>
     {/if}

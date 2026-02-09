@@ -41,7 +41,7 @@
               <td class="text-right">{usd(row.total_amount)}</td>
               <td class="purpose" title={row.purposes}>{row.purposes || ''}</td>
               <td class="text-right muted">
-                {((row.total_amount || 0) / total * 100).toFixed(1)}%
+                {(((row.total_amount || 0) / total) * 100).toFixed(1)}%
               </td>
             </tr>
           {/each}
@@ -51,7 +51,7 @@
               <td class="text-right muted">{usd(other)}</td>
               <td></td>
               <td class="text-right muted">
-                {(other / total * 100).toFixed(1)}%
+                {((other / total) * 100).toFixed(1)}%
               </td>
             </tr>
           {/if}

@@ -38,7 +38,11 @@
 
         {#if formData.committee_url}
           <dt>Website:</dt>
-          <dd><a href={formData.committee_url} target="_blank" rel="noopener noreferrer">{formData.committee_url}</a></dd>
+          <dd>
+            <a href={formData.committee_url} target="_blank" rel="noopener noreferrer"
+              >{formData.committee_url}</a
+            >
+          </dd>
         {/if}
       </dl>
     </div>
@@ -49,7 +53,8 @@
         <address>
           {formData.street_1}<br />
           {#if formData.street_2}{formData.street_2}<br />{/if}
-          {formData.city}, {formData.state} {formData.zip_code}
+          {formData.city}, {formData.state}
+          {formData.zip_code}
         </address>
       </div>
     {/if}
@@ -79,8 +84,19 @@
           {#if formData.candidate_office && formData.candidate_state}
             <dt>Contest:</dt>
             <dd>
-              <a href="/-/libfec/contest?state={formData.candidate_state}&office={formData.candidate_office}{formData.candidate_district ? '&district=' + formData.candidate_district : ''}">
-                {formData.candidate_state} {formData.candidate_office === 'H' ? 'House' : formData.candidate_office === 'S' ? 'Senate' : formData.candidate_office === 'P' ? 'President' : formData.candidate_office}
+              <a
+                href="/-/libfec/contest?state={formData.candidate_state}&office={formData.candidate_office}{formData.candidate_district
+                  ? '&district=' + formData.candidate_district
+                  : ''}"
+              >
+                {formData.candidate_state}
+                {formData.candidate_office === 'H'
+                  ? 'House'
+                  : formData.candidate_office === 'S'
+                    ? 'Senate'
+                    : formData.candidate_office === 'P'
+                      ? 'President'
+                      : formData.candidate_office}
                 {#if formData.candidate_district}District {formData.candidate_district}{/if}
               </a>
             </dd>

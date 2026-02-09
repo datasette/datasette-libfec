@@ -1,32 +1,32 @@
 <script lang="ts">
-  import type { CommitteePageData } from "./page_data/CommitteePageData.types.ts";
-  import { loadPageData } from "./page_data/load.ts";
+  import type { CommitteePageData } from './page_data/CommitteePageData.types.ts';
+  import { loadPageData } from './page_data/load.ts';
 
   const pageData = loadPageData<CommitteePageData>();
 
   const officeNames: Record<string, string> = {
-    'H': 'House',
-    'S': 'Senate',
-    'P': 'President'
+    H: 'House',
+    S: 'Senate',
+    P: 'President',
   };
 
   const committeeTypeLabels: Record<string, string> = {
-    'C': 'Communication Cost',
-    'D': 'Delegate Committee',
-    'E': 'Electioneering Communication',
-    'H': 'House Campaign',
-    'I': 'Independent Expenditure Filer',
-    'N': 'PAC - Nonqualified',
-    'O': 'Super PAC (Independent Expenditure-Only)',
-    'P': 'Presidential Campaign',
-    'Q': 'PAC - Qualified',
-    'S': 'Senate Campaign',
-    'U': 'Single Candidate Independent Expenditure',
-    'V': 'Hybrid PAC - Nonqualified',
-    'W': 'Hybrid PAC - Qualified',
-    'X': 'Party Committee - Nonqualified',
-    'Y': 'Party Committee - Qualified',
-    'Z': 'National Party Nonfederal Account'
+    C: 'Communication Cost',
+    D: 'Delegate Committee',
+    E: 'Electioneering Communication',
+    H: 'House Campaign',
+    I: 'Independent Expenditure Filer',
+    N: 'PAC - Nonqualified',
+    O: 'Super PAC (Independent Expenditure-Only)',
+    P: 'Presidential Campaign',
+    Q: 'PAC - Qualified',
+    S: 'Senate Campaign',
+    U: 'Single Candidate Independent Expenditure',
+    V: 'Hybrid PAC - Nonqualified',
+    W: 'Hybrid PAC - Qualified',
+    X: 'Party Committee - Nonqualified',
+    Y: 'Party Committee - Qualified',
+    Z: 'National Party Nonfederal Account',
   };
 
   function getCommitteeTypeLabel(type: string | null | undefined): string | null {
@@ -45,8 +45,14 @@
       <a href="/-/libfec">FEC Data</a>
       {#if pageData.candidate?.office && pageData.candidate?.state}
         &rarr;
-        <a href="/-/libfec/contest?state={pageData.candidate.state}&office={pageData.candidate.office}{pageData.candidate.office === 'H' && pageData.candidate.district ? '&district=' + pageData.candidate.district : ''}&cycle={pageData.cycle}">
-          {pageData.candidate.state} {officeNames[pageData.candidate.office] || pageData.candidate.office}
+        <a
+          href="/-/libfec/contest?state={pageData.candidate.state}&office={pageData.candidate
+            .office}{pageData.candidate.office === 'H' && pageData.candidate.district
+            ? '&district=' + pageData.candidate.district
+            : ''}&cycle={pageData.cycle}"
+        >
+          {pageData.candidate.state}
+          {officeNames[pageData.candidate.office] || pageData.candidate.office}
           {#if pageData.candidate.office === 'H' && pageData.candidate.district}
             {pageData.candidate.district}
           {/if}
@@ -64,10 +70,9 @@
       <h1>
         {pageData.committee?.name || pageData.committee_id}
         {#if pageData.committee?.party_affiliation}
-        <span class="party-badge">{pageData.committee.party_affiliation}</span>
-      {/if}
+          <span class="party-badge">{pageData.committee.party_affiliation}</span>
+        {/if}
       </h1>
-      
 
       <div class="external-link">
         <a
@@ -79,8 +84,6 @@
         </a>
       </div>
     </div>
-
-    
 
     {#if isPrincipal}
       <p class="subtitle">
@@ -96,7 +99,8 @@
 
   {#if pageData.error}
     <div class="error-box">
-      <strong>Error:</strong> {pageData.error}
+      <strong>Error:</strong>
+      {pageData.error}
     </div>
   {/if}
 
@@ -144,7 +148,8 @@
     <div class="footer-info">
       {#if pageData.committee.treasurer_name}
         <div class="footer-item">
-          <span class="footer-label">Treasurer:</span> {pageData.committee.treasurer_name}
+          <span class="footer-label">Treasurer:</span>
+          {pageData.committee.treasurer_name}
         </div>
       {/if}
 
@@ -168,7 +173,6 @@
           {/if}
         </div>
       {/if}
-
     </div>
   {/if}
 </div>

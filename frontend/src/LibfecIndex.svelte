@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { IndexPageData } from "./page_data/IndexPageData.types.ts";
-  import { loadPageData } from "./page_data/load.ts";
+  import type { IndexPageData } from './page_data/IndexPageData.types.ts';
+  import { loadPageData } from './page_data/load.ts';
   import RecentFilings from './components/RecentFilings.svelte';
 
   const pageData = loadPageData<IndexPageData>();
@@ -41,7 +41,9 @@
     background: #f8f9fa;
     text-decoration: none;
     color: inherit;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
   }
 
   .nav-card:hover {

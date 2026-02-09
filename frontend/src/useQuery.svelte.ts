@@ -8,7 +8,7 @@ export class QueryResponse<T> {
 export function useQuery<T>(queryFn: () => Promise<T>) {
   const resp = new QueryResponse<T>();
 
-  resp.refetch = async function() {
+  resp.refetch = async function () {
     resp.isLoading = true;
     try {
       resp.data = await queryFn();

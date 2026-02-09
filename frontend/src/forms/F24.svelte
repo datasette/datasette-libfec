@@ -46,7 +46,8 @@
         <address>
           {formData.street_1}<br />
           {#if formData.street_2}{formData.street_2}<br />{/if}
-          {formData.city}, {formData.state} {formData.zip_code}
+          {formData.city}, {formData.state}
+          {formData.zip_code}
         </address>
       </div>
     {/if}
@@ -73,7 +74,10 @@
     {/if}
 
     <div class="alert-box">
-      <p>This is a 24/48 hour notice of independent expenditures. See schedules for expenditure details.</p>
+      <p>
+        This is a 24/48 hour notice of independent expenditures. See schedules for expenditure
+        details.
+      </p>
     </div>
   {:else}
     <p>No form data available</p>

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import createClient from "openapi-fetch";
-  import type { paths } from "../../api.d.ts";
+  import createClient from 'openapi-fetch';
+  import type { paths } from '../../api.d.ts';
 
-  const client = createClient<paths>({ baseUrl: "/" });
+  const client = createClient<paths>({ baseUrl: '/' });
 
   interface SearchResult {
     status: string;
@@ -56,12 +56,12 @@
   let {
     selected = $bindable([]),
     cycle = 2026,
-    placeholder = "Search for candidate or committee...",
-    onselect
+    placeholder = 'Search for candidate or committee...',
+    onselect,
   }: Props = $props();
 
   // Internal state
-  let searchQuery = $state("");
+  let searchQuery = $state('');
   let searchLoading = $state(false);
   let searchResults = $state<SearchResult | null>(null);
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -77,28 +77,28 @@
     // Add candidates
     for (const candidate of searchResults.candidates) {
       // Skip if already selected
-      if (selected.some(s => s.id === candidate.candidate_id)) {
+      if (selected.some((s) => s.id === candidate.candidate_id)) {
         continue;
       }
       items.push({
         type: 'candidate',
         id: candidate.candidate_id,
         name: candidate.name,
-        data: candidate
+        data: candidate,
       });
     }
 
     // Add committees
     for (const committee of searchResults.committees) {
       // Skip if already selected
-      if (selected.some(s => s.id === committee.committee_id)) {
+      if (selected.some((s) => s.id === committee.committee_id)) {
         continue;
       }
       items.push({
         type: 'committee',
         id: committee.committee_id,
         name: committee.name,
-        data: committee
+        data: committee,
       });
     }
 
@@ -114,12 +114,12 @@
 
     searchLoading = true;
     try {
-      const {data, error} = await client.POST("/-/api/libfec/search", {
+      const { data, error } = await client.POST('/-/api/libfec/search', {
         body: {
           query: searchQuery,
           cycle: cycle,
-          limit: 100
-        }
+          limit: 100,
+        },
       });
       if (error) {
         console.error('Search error:', error);
@@ -182,7 +182,7 @@
       id: item.id,
       name: item.name,
       cycle: searchResults?.cycle || cycle,
-      data: item.data
+      data: item.data,
     };
 
     const itemsToAdd: SelectedItem[] = [newItem];
@@ -191,16 +191,16 @@
     if (item.type === 'candidate' && item.data.principal_campaign_committee) {
       const committeeId = item.data.principal_campaign_committee;
       // Check if committee is not already selected
-      if (!selected.some(s => s.id === committeeId)) {
+      if (!selected.some((s) => s.id === committeeId)) {
         // Find the committee in search results
-        const committee = searchResults?.committees.find(c => c.committee_id === committeeId);
+        const committee = searchResults?.committees.find((c) => c.committee_id === committeeId);
         if (committee) {
           itemsToAdd.push({
             type: 'committee',
             id: committee.committee_id,
             name: committee.name,
             cycle: searchResults?.cycle || cycle,
-            data: committee
+            data: committee,
           });
         }
       }
@@ -209,7 +209,7 @@
     selected = [...selected, ...itemsToAdd];
 
     // Clear search
-    searchQuery = "";
+    searchQuery = '';
     showSearchResults = false;
     selectedIndex = -1;
     searchResults = null;
@@ -224,7 +224,7 @@
   }
 
   function removeItem(id: string) {
-    selected = selected.filter(item => item.id !== id);
+    selected = selected.filter((item) => item.id !== id);
 
     // Notify parent
     if (onselect) {
@@ -253,7 +253,11 @@
   {#if selected.length > 0}
     <div class="selected-pills">
       {#each selected as item}
-        <div class="pill" class:candidate={item.type === 'candidate'} class:committee={item.type === 'committee'}>
+        <div
+          class="pill"
+          class:candidate={item.type === 'candidate'}
+          class:committee={item.type === 'committee'}
+        >
           <span class="pill-type">{item.type === 'candidate' ? 'Candidate' : 'Committee'}</span>
           <span class="pill-name">{item.name}</span>
           <code class="pill-id">{item.id}</code>
@@ -261,8 +265,8 @@
             type="button"
             class="pill-remove"
             onclick={() => removeItem(item.id)}
-            aria-label="Remove {item.name}"
-          >×</button>
+            aria-label="Remove {item.name}">×</button
+          >
         </div>
       {/each}
     </div>
@@ -279,7 +283,7 @@
       onkeydown={onSearchKeyDown}
       onblur={onSearchBlur}
       onfocus={onSearchFocus}
-      placeholder={placeholder}
+      {placeholder}
       autocomplete="off"
     />
 
@@ -309,14 +313,19 @@
                   tabindex={idx === selectedIndex ? 0 : -1}
                 >
                   <div class="result-main">
-                    <span class="result-type-badge" class:candidate={item.type === 'candidate'} class:committee={item.type === 'committee'}>
+                    <span
+                      class="result-type-badge"
+                      class:candidate={item.type === 'candidate'}
+                      class:committee={item.type === 'committee'}
+                    >
                       {item.type === 'candidate' ? 'Candidate' : 'Committee'}
                     </span>
                     <span class="result-name">{item.name}</span>
                     <code class="result-id">{item.id}</code>
                     {#if item.type === 'candidate'}
                       <span class="result-info">
-                        {item.data.office} · {item.data.state}{item.data.district} · {item.data.election_year}
+                        {item.data.office} · {item.data.state}{item.data.district} · {item.data
+                          .election_year}
                       </span>
                     {:else}
                       <span class="result-info">
@@ -331,7 +340,12 @@
               {/each}
             </div>
             <div class="search-footer">
-              Found {searchResults.candidate_count} candidate{searchResults.candidate_count !== 1 ? 's' : ''} and {searchResults.committee_count} committee{searchResults.committee_count !== 1 ? 's' : ''}
+              Found {searchResults.candidate_count} candidate{searchResults.candidate_count !== 1
+                ? 's'
+                : ''} and {searchResults.committee_count} committee{searchResults.committee_count !==
+              1
+                ? 's'
+                : ''}
             </div>
           {/if}
         {/if}
@@ -437,7 +451,9 @@
     background: white;
     border: 1px solid #dee2e6;
     border-radius: 6px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 4px 6px rgba(0, 0, 0, 0.1),
+      0 2px 4px rgba(0, 0, 0, 0.06);
     max-height: 400px;
     overflow-y: auto;
     z-index: 1000;
@@ -501,8 +517,6 @@
     font-weight: 500;
     color: #212529;
   }
-
-
 
   .result-id {
     font-family: 'Courier New', monospace;

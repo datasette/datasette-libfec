@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import createClient from "openapi-fetch";
-  import type { paths } from "../../api.d.ts";
+  import createClient from 'openapi-fetch';
+  import type { paths } from '../../api.d.ts';
 
-  const client = createClient<paths>({ baseUrl: "/" });
+  const client = createClient<paths>({ baseUrl: '/' });
 
   interface RssStatus {
     enabled: boolean;
@@ -35,8 +35,10 @@
   let secondsRemaining = $state<number | null>(null);
 
   function isActivelySyncing(): boolean {
-    return status != null &&
-           (status.phase === 'fetching' || status.phase === 'exporting' || status.phase === 'syncing');
+    return (
+      status != null &&
+      (status.phase === 'fetching' || status.phase === 'exporting' || status.phase === 'syncing')
+    );
   }
 
   onMount(() => {
@@ -53,12 +55,15 @@
     }, 1000);
 
     // Poll server for status updates
-    const statusInterval = setInterval(() => {
-      loadStatus();
-      if (isActivelySyncing()) {
-        loadSyncs();
-      }
-    }, isActivelySyncing() ? 2000 : 10000);
+    const statusInterval = setInterval(
+      () => {
+        loadStatus();
+        if (isActivelySyncing()) {
+          loadSyncs();
+        }
+      },
+      isActivelySyncing() ? 2000 : 10000
+    );
 
     // Refresh sync history periodically
     const syncsInterval = setInterval(() => {
@@ -74,11 +79,14 @@
 
   async function loadStatus() {
     try {
-      const { data, error } = await client.GET("/-/api/libfec/rss/status");
+      const { data, error } = await client.GET('/-/api/libfec/rss/status');
       if (data && !error) {
         status = data as unknown as RssStatus;
 
-        if (status.seconds_until_next_sync !== null && status.seconds_until_next_sync !== undefined) {
+        if (
+          status.seconds_until_next_sync !== null &&
+          status.seconds_until_next_sync !== undefined
+        ) {
           nextSyncTimestamp = new Date(Date.now() + status.seconds_until_next_sync * 1000);
           secondsRemaining = status.seconds_until_next_sync;
         } else {
@@ -93,7 +101,7 @@
 
   async function loadSyncs() {
     try {
-      const { data, error } = await client.GET("/-/api/libfec/rss/syncs");
+      const { data, error } = await client.GET('/-/api/libfec/rss/syncs');
       if (data && !error) {
         syncs = (data as any).syncs || [];
       }
@@ -103,7 +111,7 @@
   }
 
   function formatDuration(seconds: number): string {
-    if (seconds <= 0) return "now";
+    if (seconds <= 0) return 'now';
     if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -116,42 +124,42 @@
   }
 
   function formatProgress(): string {
-    if (!status) return "Unknown";
-    const phase = status.phase || "idle";
+    if (!status) return 'Unknown';
+    const phase = status.phase || 'idle';
 
     switch (phase) {
-      case "idle":
-        return "Idle";
-      case "syncing":
-        return "Starting sync...";
-      case "fetching":
-        return "Fetching RSS feed...";
-      case "exporting":
+      case 'idle':
+        return 'Idle';
+      case 'syncing':
+        return 'Starting sync...';
+      case 'fetching':
+        return 'Fetching RSS feed...';
+      case 'exporting':
         if (status.total_count && status.total_count > 0) {
           const count = status.exported_count || 0;
           const total = status.total_count;
           const percent = Math.round((count / total) * 100);
           return `Exporting: ${count}/${total} (${percent}%)`;
         }
-        return "Exporting filings...";
-      case "complete":
-        return "Sync complete";
-      case "error":
-        return "Error";
+        return 'Exporting filings...';
+      case 'complete':
+        return 'Sync complete';
+      case 'error':
+        return 'Error';
       default:
         return phase;
     }
   }
 
   function getNextSyncLabel(): string {
-    if (!status?.running) return "";
-    if (isActivelySyncing()) return "syncing now";
-    if (secondsRemaining === null) return "starting soon";
+    if (!status?.running) return '';
+    if (isActivelySyncing()) return 'syncing now';
+    if (secondsRemaining === null) return 'starting soon';
     return formatDuration(secondsRemaining);
   }
 
   function getNextSyncTooltip(): string {
-    if (!nextSyncTimestamp) return "";
+    if (!nextSyncTimestamp) return '';
     return nextSyncTimestamp.toLocaleString();
   }
 
@@ -162,10 +170,14 @@
 
   function syncStatusBadge(syncStatus: string): string {
     switch (syncStatus) {
-      case 'completed': return 'badge-success';
-      case 'running': return 'badge-info';
-      case 'failed': return 'badge-danger';
-      default: return 'badge-secondary';
+      case 'completed':
+        return 'badge-success';
+      case 'running':
+        return 'badge-info';
+      case 'failed':
+        return 'badge-danger';
+      default:
+        return 'badge-secondary';
     }
   }
 </script>
@@ -183,7 +195,9 @@
           {#if isActivelySyncing()}
             <span class="pulse"></span> Syncing
           {:else}
-            Next sync: <strong class="countdown" title={getNextSyncTooltip()}>{getNextSyncLabel()}</strong>
+            Next sync: <strong class="countdown" title={getNextSyncTooltip()}
+              >{getNextSyncLabel()}</strong
+            >
           {/if}
         </span>
       </div>
@@ -211,14 +225,17 @@
 
       {#if status.error_message}
         <div class="error-box">
-          <strong>Error:</strong> {status.error_message}
+          <strong>Error:</strong>
+          {status.error_message}
         </div>
       {/if}
     </div>
   {:else}
     <div class="status-card disabled">
       <p>RSS watcher is not running.</p>
-      <p class="hint">To enable, add <code>rss-sync-interval-seconds</code> to your datasette.yaml plugin config:</p>
+      <p class="hint">
+        To enable, add <code>rss-sync-interval-seconds</code> to your datasette.yaml plugin config:
+      </p>
       <pre>plugins:
   datasette-libfec:
     rss-sync-interval-seconds: 60</pre>
@@ -333,8 +350,15 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.2); }
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.2);
+    }
   }
 
   .config-display {
@@ -410,7 +434,8 @@
     font-size: 0.9em;
   }
 
-  th, td {
+  th,
+  td {
     padding: 0.5em 0.75em;
     text-align: left;
     border-bottom: 1px solid #dee2e6;

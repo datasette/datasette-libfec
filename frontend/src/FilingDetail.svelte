@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type { FilingDetailPageData } from "./page_data/FilingDetailPageData.types.ts";
-  import { loadPageData } from "./page_data/load.ts";
+  import type { FilingDetailPageData } from './page_data/FilingDetailPageData.types.ts';
+  import { loadPageData } from './page_data/load.ts';
   import { databaseName as databaseNameStore } from './stores';
   import F1 from './forms/F1.svelte';
   import F1S from './forms/F1S.svelte';
   import F2 from './forms/F2.svelte';
   import F3 from './forms/F3/F3.svelte';
-  import type {F3FormData} from './forms/F3/F3.svelte';
+  import type { F3FormData } from './forms/F3/F3.svelte';
   import F3P from './forms/F3P.svelte';
   import F3S from './forms/F3S.svelte';
   import F3X from './forms/F3X.svelte';
@@ -49,11 +49,7 @@
       </div>
     {/if}
     <div class="links">
-      <a
-        href="/{databaseName}/libfec_filings/{filingId}"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
+      <a href="/{databaseName}/libfec_filings/{filingId}" target="_blank" rel="noopener noreferrer">
         Row page
       </a>
       <a

@@ -10,8 +10,8 @@ export async function query(
   parameters?: Record<string, string>
 ): Promise<any[]> {
   const params = new URLSearchParams();
-  params.append("sql", sql);
-  params.append("_shape", "array");
+  params.append('sql', sql);
+  params.append('_shape', 'array');
   if (parameters) {
     for (const [key, value] of Object.entries(parameters)) {
       params.append(key, value);

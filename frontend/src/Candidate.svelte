@@ -1,21 +1,21 @@
 <script lang="ts">
-  import type { CandidatePageData } from "./page_data/CandidatePageData.types.ts";
-  import { loadPageData } from "./page_data/load.ts";
+  import type { CandidatePageData } from './page_data/CandidatePageData.types.ts';
+  import { loadPageData } from './page_data/load.ts';
 
   const pageData = loadPageData<CandidatePageData>();
 
   const officeNames: Record<string, string> = {
-    'H': 'House',
-    'S': 'Senate',
-    'P': 'President'
+    H: 'House',
+    S: 'Senate',
+    P: 'President',
   };
 
   function getStatusLabel(status: string | null | undefined): string | null {
     if (!status) return null;
     const statuses: Record<string, string> = {
-      'I': 'Incumbent',
-      'C': 'Challenger',
-      'O': 'Open Seat'
+      I: 'Incumbent',
+      C: 'Challenger',
+      O: 'Open Seat',
     };
     return statuses[status] || status;
   }
@@ -51,7 +51,9 @@
         &rarr;
         <a href={getContestUrl(pageData.candidate)}>
           {pageData.candidate.state}
-          {pageData.candidate.office ? officeNames[pageData.candidate.office] || pageData.candidate.office : ''}
+          {pageData.candidate.office
+            ? officeNames[pageData.candidate.office] || pageData.candidate.office
+            : ''}
           {#if pageData.candidate.office === 'H' && pageData.candidate.district}
             {pageData.candidate.district}
           {/if}
@@ -92,7 +94,8 @@
 
   {#if pageData.error}
     <div class="error-box">
-      <strong>Error:</strong> {pageData.error}
+      <strong>Error:</strong>
+      {pageData.error}
     </div>
   {/if}
 

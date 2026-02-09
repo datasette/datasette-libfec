@@ -65,7 +65,8 @@
         <address>
           {formData.candidate_street_1}<br />
           {#if formData.candidate_street_2}{formData.candidate_street_2}<br />{/if}
-          {formData.candidate_city}, {formData.candidate_state} {formData.candidate_zip_code}
+          {formData.candidate_city}, {formData.candidate_state}
+          {formData.candidate_zip_code}
         </address>
       </div>
     {/if}
@@ -91,7 +92,8 @@
           <address>
             {formData.committee_street_1}<br />
             {#if formData.committee_street_2}{formData.committee_street_2}<br />{/if}
-            {formData.committee_city}, {formData.committee_state} {formData.committee_zip_code}
+            {formData.committee_city}, {formData.committee_state}
+            {formData.committee_zip_code}
           </address>
         {/if}
       </div>
