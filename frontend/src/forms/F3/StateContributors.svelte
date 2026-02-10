@@ -1,88 +1,79 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
+  import { databaseName } from '../../stores';
+  import { query } from '../../api';
+  import { useQuery } from '../../useQuery.svelte';
+  import { getStateName } from '../../utils/stateNames';
+
   interface StateContribution {
     contributor_state: string;
     total_contributions: number;
   }
 
   interface Props {
-    contributions: StateContribution[];
+    filingId: string;
     homeState: string | null;
   }
 
-  let { contributions, homeState }: Props = $props();
+  let { filingId, homeState }: Props = $props();
 
-  const STATE_NAMES: Record<string, string> = {
-    AL: 'Alabama',
-    AK: 'Alaska',
-    AZ: 'Arizona',
-    AR: 'Arkansas',
-    CA: 'California',
-    CO: 'Colorado',
-    CT: 'Connecticut',
-    DE: 'Delaware',
-    FL: 'Florida',
-    GA: 'Georgia',
-    HI: 'Hawaii',
-    ID: 'Idaho',
-    IL: 'Illinois',
-    IN: 'Indiana',
-    IA: 'Iowa',
-    KS: 'Kansas',
-    KY: 'Kentucky',
-    LA: 'Louisiana',
-    ME: 'Maine',
-    MD: 'Maryland',
-    MA: 'Massachusetts',
-    MI: 'Michigan',
-    MN: 'Minnesota',
-    MS: 'Mississippi',
-    MO: 'Missouri',
-    MT: 'Montana',
-    NE: 'Nebraska',
-    NV: 'Nevada',
-    NH: 'New Hampshire',
-    NJ: 'New Jersey',
-    NM: 'New Mexico',
-    NY: 'New York',
-    NC: 'North Carolina',
-    ND: 'North Dakota',
-    OH: 'Ohio',
-    OK: 'Oklahoma',
-    OR: 'Oregon',
-    PA: 'Pennsylvania',
-    RI: 'Rhode Island',
-    SC: 'South Carolina',
-    SD: 'South Dakota',
-    TN: 'Tennessee',
-    TX: 'Texas',
-    UT: 'Utah',
-    VT: 'Vermont',
-    VA: 'Virginia',
-    WA: 'Washington',
-    WV: 'West Virginia',
-    WI: 'Wisconsin',
-    WY: 'Wyoming',
-    DC: 'District of Columbia',
-    PR: 'Puerto Rico',
-    VI: 'Virgin Islands',
-    GU: 'Guam',
-  };
+  const dbName = get(databaseName);
 
-  function usd(value: number | null | undefined): string {
+  async function fetchStateContributions(): Promise<StateContribution[]> {
+    if (!filingId) return [];
+
+    const sql = `
+      SELECT
+        contributor_state,
+        SUM(contribution_amount) as total_contributions
+      FROM libfec_schedule_a
+      WHERE filing_id = :filing_id
+        AND contributor_state IS NOT NULL
+        AND contributor_state != ''
+        AND memo_code != 'X'
+      GROUP BY contributor_state
+      ORDER BY total_contributions DESC
+    `;
+    return query(dbName, sql, { filing_id: filingId });
+  }
+
+  const contributions = useQuery(fetchStateContributions);
+
+  function usd(value: number | null | undefined, round = false): string {
     if (value == null) return '$0';
-    return '$' + value.toLocaleString();
+    const v = round ? Math.round(value) : value;
+    return '$' + v.toLocaleString();
+  }
+
+  function stateUrl(stateCode: string): string {
+    const params = new URLSearchParams({
+      _sort: 'rowid',
+      contributor_state__exact: stateCode,
+      filing_id__exact: filingId,
+      form_type__exact: 'SA11AI',
+      memo_code__not: 'X',
+    });
+    return `/${dbName}/libfec_schedule_a?${params}`;
   }
 
   const total = $derived(
-    contributions.reduce((sum, row) => sum + (row.total_contributions || 0), 0)
+    (contributions.data ?? []).reduce((sum, row) => sum + (row.total_contributions || 0), 0)
   );
-  const top5 = $derived(contributions.slice(0, 5));
+  const N = 10;
+  const topN = $derived((contributions.data ?? []).slice(0, N));
   const other = $derived(
-    contributions.slice(5).reduce((sum, row) => sum + (row.total_contributions || 0), 0)
+    (contributions.data ?? [])
+      .slice(N)
+      .reduce((sum, row) => sum + (row.total_contributions || 0), 0)
   );
 </script>
 
-{#if contributions.length > 0}
+{#if contributions.isLoading}
+  <div class="section-box">
+    <h4>Individual Contributions by State</h4>
+    <div class="loading">Loading...</div>
+  </div>
+{:else if contributions.data && contributions.data.length > 0}
   <div class="section-box">
     <h4>Individual Contributions by State</h4>
     <div class="table-container">
@@ -95,15 +86,15 @@
           </tr>
         </thead>
         <tbody>
-          {#each top5 as row}
+          {#each topN as row}
             <tr>
               <td>
-                {STATE_NAMES[row.contributor_state] || row.contributor_state}
+                <a href={stateUrl(row.contributor_state)}>{getStateName(row.contributor_state)}</a>
                 {#if row.contributor_state === homeState}
                   <span class="home-badge">Home</span>
                 {/if}
               </td>
-              <td class="text-right">{usd(row.total_contributions)}</td>
+              <td class="text-right">{usd(row.total_contributions, true)}</td>
               <td class="text-right muted">
                 {(((row.total_contributions || 0) / total) * 100).toFixed(1)}%
               </td>
@@ -111,8 +102,8 @@
           {/each}
           {#if other > 0}
             <tr class="other-row">
-              <td class="muted italic">Other ({contributions.length - 5} states)</td>
-              <td class="text-right muted">{usd(other)}</td>
+              <td class="muted italic">Other ({(contributions.data?.length ?? 0) - 5} states)</td>
+              <td class="text-right muted">{usd(other, true)}</td>
               <td class="text-right muted">
                 {((other / total) * 100).toFixed(1)}%
               </td>
@@ -126,6 +117,7 @@
         </tbody>
       </table>
     </div>
+    <p class="info-note">Only includes individuals who have given $200 or more this cycle.</p>
   </div>
 {/if}
 
@@ -135,8 +127,6 @@
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    max-width: 500px;
   }
 
   .section-box h4 {
@@ -211,5 +201,18 @@
 
   .total-row td {
     padding-top: 0.75rem;
+  }
+
+  .loading {
+    text-align: center;
+    color: #6b7280;
+    padding: 1rem;
+  }
+
+  .info-note {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-style: italic;
   }
 </style>

@@ -1,27 +1,84 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
+  import { databaseName } from '../../stores';
+  import { query } from '../../api';
+  import { useQuery } from '../../useQuery.svelte';
+
   interface TopPayee {
     payee: string;
+    payee_organization_name: string | null;
+    payee_last_name: string | null;
     total_amount: number;
     purposes: string;
   }
 
   interface Props {
-    payees: TopPayee[];
+    filingId: string;
   }
 
-  let { payees }: Props = $props();
+  let { filingId }: Props = $props();
 
-  function usd(value: number | null | undefined): string {
+  const dbName = get(databaseName);
+
+  async function fetchTopPayees(): Promise<TopPayee[]> {
+    if (!filingId) return [];
+
+    const sql = `
+      SELECT
+        COALESCE(payee_organization_name, payee_last_name || ', ' || payee_first_name) as payee,
+        payee_organization_name,
+        payee_last_name,
+        SUM(expenditure_amount) as total_amount,
+        GROUP_CONCAT(DISTINCT expenditure_purpose_descrip) as purposes
+      FROM libfec_schedule_b
+      WHERE 
+        filing_id = :filing_id 
+        AND form_type = 'SB17'
+        AND memo_code != 'X'
+      GROUP BY payee
+      ORDER BY total_amount DESC
+      LIMIT 20
+    `;
+    return query(dbName, sql, { filing_id: filingId });
+  }
+
+  const payees = useQuery(fetchTopPayees);
+
+  function usd(value: number | null | undefined, round = false): string {
     if (value == null) return '$0';
-    return '$' + value.toLocaleString();
+    const v = round ? Math.round(value) : value;
+    return '$' + v.toLocaleString();
   }
 
-  const total = $derived(payees.reduce((sum, row) => sum + (row.total_amount || 0), 0));
-  const top10 = $derived(payees.slice(0, 10));
-  const other = $derived(payees.slice(10).reduce((sum, row) => sum + (row.total_amount || 0), 0));
+  function payeeUrl(row: TopPayee): string {
+    const params = new URLSearchParams({
+      _sort: 'rowid',
+      filing_id__exact: filingId,
+    });
+    if (row.payee_organization_name) {
+      params.set('payee_organization_name__exact', row.payee_organization_name);
+    } else if (row.payee_last_name) {
+      params.set('payee_last_name__exact', row.payee_last_name);
+    }
+    params.set('form_type__exact', 'SB17');
+    return `/${dbName}/libfec_schedule_b?${params}`;
+  }
+
+  const total = $derived(
+    (payees.data ?? []).reduce((sum, row) => sum + (row.total_amount || 0), 0)
+  );
+  const top10 = $derived((payees.data ?? []).slice(0, 10));
+  const other = $derived(
+    (payees.data ?? []).slice(10).reduce((sum, row) => sum + (row.total_amount || 0), 0)
+  );
 </script>
 
-{#if payees.length > 0}
+{#if payees.isLoading}
+  <div class="section-box">
+    <h4>Top Expenditure Payees</h4>
+    <div class="loading">Loading...</div>
+  </div>
+{:else if payees.data && payees.data.length > 0}
   <div class="section-box">
     <h4>Top Expenditure Payees</h4>
     <div class="table-container">
@@ -29,17 +86,19 @@
         <thead>
           <tr>
             <th class="text-left">Payee</th>
-            <th class="text-right">Amount</th>
             <th class="text-left">Purpose</th>
+            <th class="text-right">Amount</th>
             <th class="text-right">% of Total</th>
           </tr>
         </thead>
         <tbody>
           {#each top10 as row}
             <tr>
-              <td class="payee-name" title={row.payee}>{row.payee || 'Unknown'}</td>
-              <td class="text-right">{usd(row.total_amount)}</td>
+              <td class="payee-name" title={row.payee}>
+                <a href={payeeUrl(row)}>{row.payee || 'Unknown'}</a>
+              </td>
               <td class="purpose" title={row.purposes}>{row.purposes || ''}</td>
+              <td class="text-right">{usd(row.total_amount, true)}</td>
               <td class="text-right muted">
                 {(((row.total_amount || 0) / total) * 100).toFixed(1)}%
               </td>
@@ -47,9 +106,9 @@
           {/each}
           {#if other > 0}
             <tr class="other-row">
-              <td class="muted italic">Other ({payees.length - 10} payees)</td>
-              <td class="text-right muted">{usd(other)}</td>
+              <td class="muted italic">Other ({(payees.data?.length ?? 0) - 10} payees)</td>
               <td></td>
+              <td class="text-right muted">{usd(other, true)}</td>
               <td class="text-right muted">
                 {((other / total) * 100).toFixed(1)}%
               </td>
@@ -57,13 +116,14 @@
           {/if}
           <tr class="total-row">
             <td>Total</td>
-            <td class="text-right">{usd(total)}</td>
             <td></td>
+            <td class="text-right">{usd(total)}</td>
             <td class="text-right">100.0%</td>
           </tr>
         </tbody>
       </table>
     </div>
+    <p class="info-note">Only includes operating expenditures $200 or more.</p>
   </div>
 {/if}
 
@@ -73,7 +133,6 @@
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 1.5rem;
-    margin-bottom: 1.5rem;
   }
 
   .section-box h4 {
@@ -147,11 +206,24 @@
   }
 
   .purpose {
-    max-width: 250px;
+    max-width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 0.85rem;
     color: #6b7280;
+  }
+
+  .loading {
+    text-align: center;
+    color: #6b7280;
+    padding: 1rem;
+  }
+
+  .info-note {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-style: italic;
   }
 </style>

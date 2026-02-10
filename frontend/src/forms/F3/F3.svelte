@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { F3SankeyComponent, type InputRow } from '../../components/sankey';
   import { databaseName } from '../../stores';
-  import { query } from '../../api';
   import StateContributors from './StateContributors.svelte';
   import TopPayees from './TopPayees.svelte';
   import { getReportLabel } from '../../utils/reportCodes';
@@ -70,64 +68,7 @@
       (formData.col_a_cash_beginning_reporting_period ?? 0)
   );
 
-  // Schedule data
-  interface StateContribution {
-    contributor_state: string;
-    total_contributions: number;
-  }
-
-  interface TopPayee {
-    payee: string;
-    total_amount: number;
-    purposes: string;
-  }
-
-  let stateContributions = $state<StateContribution[]>([]);
-  let topPayees = $state<TopPayee[]>([]);
-  let loadingSchedules = $state(true);
-
   const homeState = $derived(formData.election_state || null);
-
-  onMount(async () => {
-    if (!filingId) {
-      loadingSchedules = false;
-      return;
-    }
-
-    try {
-      // Fetch contributions by state
-      const stateQuerySql = `
-        SELECT
-          contributor_state,
-          SUM(contribution_amount) as total_contributions
-        FROM libfec_schedule_a
-        WHERE filing_id = :filing_id
-          AND contributor_state IS NOT NULL
-          AND contributor_state != ''
-        GROUP BY contributor_state
-        ORDER BY total_contributions DESC
-      `;
-      stateContributions = await query(dbName, stateQuerySql, { filing_id: filingId });
-
-      // Fetch top payees
-      const payeeQuerySql = `
-        SELECT
-          COALESCE(payee_organization_name, payee_last_name || ', ' || payee_first_name) as payee,
-          SUM(expenditure_amount) as total_amount,
-          GROUP_CONCAT(DISTINCT expenditure_purpose_descrip) as purposes
-        FROM libfec_schedule_b
-        WHERE filing_id = :filing_id
-        GROUP BY payee
-        ORDER BY total_amount DESC
-        LIMIT 20
-      `;
-      topPayees = await query(dbName, payeeQuerySql, { filing_id: filingId });
-    } catch (e) {
-      console.error('Error fetching schedule data:', e);
-    } finally {
-      loadingSchedules = false;
-    }
-  });
 </script>
 
 <div class="form-content">
@@ -254,19 +195,15 @@
       </div>
     </div>
 
-    <!-- Contributions by State -->
-    {#if !loadingSchedules}
-      <StateContributors contributions={stateContributions} {homeState} />
-    {/if}
-
-    <!-- Top Payees -->
-    {#if !loadingSchedules}
-      <TopPayees payees={topPayees} />
-    {/if}
-
-    {#if loadingSchedules}
-      <div class="loading-schedules">Loading schedule data...</div>
-    {/if}
+    <!-- Schedule Data -->
+    <div class="schedule-row">
+      <div class="schedule-col-1">
+        <StateContributors {filingId} {homeState} />
+      </div>
+      <div class="schedule-col-2">
+        <TopPayees {filingId} />
+      </div>
+    </div>
   {:else}
     <p>No form data available</p>
   {/if}
@@ -422,9 +359,25 @@
     text-align: right;
   }
 
-  .loading-schedules {
-    text-align: center;
-    color: #6b7280;
-    padding: 2rem;
+  .schedule-row {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .schedule-col-1 {
+    flex: 2;
+    min-width: 0;
+  }
+
+  .schedule-col-2 {
+    flex: 3;
+    min-width: 0;
+  }
+
+  @media (max-width: 1024px) {
+    .schedule-row {
+      flex-direction: column;
+    }
   }
 </style>
