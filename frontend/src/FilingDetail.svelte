@@ -77,7 +77,12 @@
     {:else if reportType === 'F2'}
       <F2 {formData} {filingId} />
     {:else if reportType === 'F3'}
-      <F3 formData={formData as unknown as F3FormData} {filingId} />
+      <F3
+        formData={formData as unknown as F3FormData}
+        {filingId}
+        filerId={filingData?.filer_id ?? ''}
+        {databaseName}
+      />
     {:else if reportType === 'F3P'}
       <F3P {formData} {filingId} />
     {:else if reportType === 'F3S'}

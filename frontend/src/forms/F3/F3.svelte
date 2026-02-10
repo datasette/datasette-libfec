@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { get } from 'svelte/store';
   import { F3SankeyComponent, type InputRow } from '../../components/sankey';
-  import { databaseName } from '../../stores';
   import StateContributors from './StateContributors.svelte';
   import TopPayees from './TopPayees.svelte';
+  import RelatedF3Reports from './RelatedF3Reports.svelte';
   import { getReportLabel } from '../../utils/reportCodes';
 
   // F3 form data from database - extends InputRow with additional summary fields
@@ -40,11 +39,11 @@
   interface Props {
     formData: F3FormData;
     filingId: string;
+    filerId: string;
+    databaseName: string;
   }
 
-  let { formData, filingId }: Props = $props();
-
-  const dbName = get(databaseName);
+  let { formData, filingId, filerId, databaseName }: Props = $props();
 
   // Check if formData has the required fields for the Sankey diagram
   const hasSankeyData = $derived(
@@ -108,7 +107,7 @@
     {#if hasSankeyData && sankeyItems.length > 0}
       <div class="section-box">
         <h4>Financial Activity</h4>
-        <F3SankeyComponent items={sankeyItems} />
+        <F3SankeyComponent items={sankeyItems} {databaseName} {filingId} />
       </div>
     {/if}
 
@@ -204,6 +203,14 @@
         <TopPayees {filingId} />
       </div>
     </div>
+
+    <!-- Related Reports -->
+    <RelatedF3Reports
+      {filingId}
+      {filerId}
+      reportCode={formData.report_code}
+      coverageThroughDate={formData.coverage_through_date}
+    />
   {:else}
     <p>No form data available</p>
   {/if}
