@@ -43,6 +43,16 @@ format-check:
     just format-backend-check
     just format-frontend-check
 
+check-frontend:
+    npm run check --prefix frontend
+
+check-backend:
+    uvx ty check
+
+check:
+    just check-backend
+    just check-frontend
+
 dev *flags:
   DATASETTE_SECRET=abc123 uv run datasette -p 8004 tmp.db ye2.db {{flags}}
 
