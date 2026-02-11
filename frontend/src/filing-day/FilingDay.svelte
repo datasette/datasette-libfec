@@ -93,61 +93,35 @@
     name,
   }));
 
-  function buildQuery(): { sql: string; params: Record<string, string> } {
-    let whereConditions = [
-      `f3.report_code = :report_code`,
-      `strftime('%Y', f3.coverage_through_date) = :year`,
-    ];
-
-    const params: Record<string, string> = {
-      report_code: reportCode,
-      year: year,
-      office: office,
-    };
-
-    let candidateWhere = 'cand.office = :office';
-
-    if (stateFilter) {
-      candidateWhere += ' AND cand.state = :state';
-      params.state = stateFilter;
-    }
-
-    if (office === 'H' && district) {
-      candidateWhere += ' AND cand.district = :district';
-      params.district = district;
-    }
-
-    if (partyFilter) {
-      if (partyFilter === 'OTH') {
-        candidateWhere += " AND cand.party_affiliation NOT IN ('DEM', 'REP')";
-      } else {
-        candidateWhere += ' AND cand.party_affiliation = :party';
-        params.party = partyFilter;
-      }
-    }
-
-    // Minimum cash on hand filter
-    if (minCashEnabled && minCashAmount) {
-      whereConditions.push('f3.col_a_cash_on_hand_close_of_period >= :min_cash');
-      params.min_cash = minCashAmount;
-    }
-
-    // Build dynamic column selections based on active columns
-    const columnSelects = activeColumns.map((col) => `${col.sqlExpr} as ${col.id}`).join(',\n    ');
-
-    // Default sort column for ORDER BY - use the alias from matching_filings
-    const firstColumn = activeColumns[0];
-    const defaultSortExpr = firstColumn ? `mf.${firstColumn.id}` : 'mf.total_individual';
-
-    const sql = `
+  // Static SQL query - no string concatenation, uses IIF() for conditional filtering
+  const sql = `
 WITH matching_filings AS (
   SELECT
     fil.filer_id,
     f3.filing_id,
-    ${columnSelects}
+    -- Receipts
+    f3.col_a_total_individual_contributions as total_individual,
+    f3.col_a_individual_contributions_itemized as large_individual,
+    f3.col_a_individual_contributions_unitemized as small_individual,
+    CASE WHEN f3.col_a_total_individual_contributions > 0
+      THEN f3.col_a_individual_contributions_unitemized * 100.0 / f3.col_a_total_individual_contributions
+      ELSE NULL END as small_donor_ratio,
+    f3.col_a_candidate_loans as candidate_loans,
+    f3.col_a_pac_contributions as pac_contributions,
+    f3.col_a_political_party_contributions as party_contributions,
+    f3.col_a_total_receipts as total_receipts,
+    -- Disbursements
+    f3.col_a_operating_expenditures as operating_expenditures,
+    f3.col_a_total_refunds as total_refunds,
+    f3.col_a_total_disbursements as total_disbursements,
+    -- Cash on Hand
+    f3.col_a_cash_beginning_reporting_period as cash_on_hand_begin,
+    f3.col_a_cash_on_hand_close_of_period as cash_on_hand_end
   FROM libfec_filings fil
   JOIN libfec_F3 f3 ON fil.filing_id = f3.filing_id
-  WHERE ${whereConditions.join(' AND ')}
+  WHERE f3.report_code = :report_code
+    AND strftime('%Y', f3.coverage_through_date) = :year
+    AND IIF(:min_cash_enabled = '1', f3.col_a_cash_on_hand_close_of_period >= :min_cash, 1)
 ),
 candidates_in_race AS (
   SELECT
@@ -159,7 +133,11 @@ candidates_in_race AS (
     cand.incumbent_challenger_status,
     cand.principal_campaign_committee
   FROM libfec_candidates cand
-  WHERE ${candidateWhere}
+  WHERE cand.office = :office
+    AND IIF(:state = '', 1, cand.state = :state)
+    AND IIF(:office != 'H' OR :district = '', 1, cand.district = :district)
+    AND IIF(:party = '', 1,
+        IIF(:party = 'OTH', cand.party_affiliation NOT IN ('DEM', 'REP'), cand.party_affiliation = :party))
   GROUP BY cand.candidate_id
 ),
 final AS (
@@ -174,18 +152,27 @@ final AS (
     mf.*
   FROM candidates_in_race c
   JOIN matching_filings mf ON c.principal_campaign_committee = mf.filer_id
-  ORDER BY ${defaultSortExpr} DESC
+  ORDER BY mf.total_individual DESC
   LIMIT 500
 )
 SELECT * FROM final
 `;
 
-    return { sql, params };
+  function getQueryParams(): Record<string, string> {
+    return {
+      report_code: reportCode,
+      year: year,
+      office: office,
+      state: stateFilter,
+      district: district,
+      party: partyFilter,
+      min_cash_enabled: minCashEnabled ? '1' : '0',
+      min_cash: minCashAmount,
+    };
   }
 
   async function fetchReports(): Promise<FilingReport[]> {
-    const { sql, params } = buildQuery();
-    return await query(pageData.database_name, sql, params);
+    return await query(pageData.database_name, sql, getQueryParams());
   }
 
   const result = useQuery(fetchReports);
