@@ -1,5 +1,6 @@
 <script lang="ts">
   import { loadPageData } from './page_data/load.ts';
+  import Breadcrumb from './components/Breadcrumb.svelte';
 
   interface ExportFilingInfo {
     filing_id: string;
@@ -88,9 +89,9 @@
 </script>
 
 <div class="export-detail">
-  <nav class="breadcrumb">
-    <a href="/-/libfec">FEC Data</a> / Export #{pageData.export_id}
-  </nav>
+  <Breadcrumb
+    items={[{ label: 'FEC Data', href: '/-/libfec' }, { label: `Export #${pageData.export_id}` }]}
+  />
 
   <header>
     <h1>Export #{pageData.export_id}</h1>
@@ -217,21 +218,6 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 1em;
-  }
-
-  .breadcrumb {
-    font-size: 0.9em;
-    color: #666;
-    margin-bottom: 1em;
-  }
-
-  .breadcrumb a {
-    color: #0066cc;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
   }
 
   header {

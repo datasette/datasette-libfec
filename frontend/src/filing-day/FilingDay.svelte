@@ -6,6 +6,7 @@
   import { STATE_NAMES } from '../utils/stateNames.ts';
   import { AVAILABLE_COLUMNS, DEFAULT_COLUMNS, getColumnsById, type ColumnDef } from './columns.ts';
   import ColumnSelector from './ColumnSelector.svelte';
+  import Breadcrumb from '../components/Breadcrumb.svelte';
 
   interface FilingDayPageData {
     database_name: string;
@@ -350,10 +351,8 @@ SELECT * FROM final
 
 <div class="filing-day-page">
   <div class="header">
+    <Breadcrumb items={[{ label: 'FEC Data', href: '/-/libfec' }, { label: 'Filing Day' }]} />
     <h1>Filing Day</h1>
-    <div class="breadcrumb">
-      <a href="/-/libfec">FEC Data</a> &rarr; Filing Day
-    </div>
   </div>
 
   <section class="filters">
@@ -459,9 +458,15 @@ SELECT * FROM final
       <p class="no-data">No filings found matching your criteria.</p>
     {:else}
       <div class="results-header">
-        <p class="result-count">{sortedReports().length >= 500 ? '500+' : sortedReports().length} filings found</p>
+        <p class="result-count">
+          {sortedReports().length >= 500 ? '500+' : sortedReports().length} filings found
+        </p>
         <div class="results-actions">
-          <button type="button" class="edit-columns-btn" onclick={() => (showColumnSelector = true)}>
+          <button
+            type="button"
+            class="edit-columns-btn"
+            onclick={() => (showColumnSelector = true)}
+          >
             Edit Columns ({selectedColumnIds.length})
           </button>
           <a href={getSqlQueryUrl()} target="_blank" class="view-sql-link">View SQL</a>
@@ -552,20 +557,6 @@ SELECT * FROM final
   .header h1 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
-  }
-
-  .breadcrumb {
-    font-size: 0.9rem;
-    color: #666;
-  }
-
-  .breadcrumb a {
-    color: #0066cc;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
   }
 
   .filters {

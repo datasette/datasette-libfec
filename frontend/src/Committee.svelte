@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CommitteePageData } from './page_data/CommitteePageData.types.ts';
   import { loadPageData } from './page_data/load.ts';
+  import Breadcrumb, { type BreadcrumbItem } from './components/Breadcrumb.svelte';
 
   const pageData = loadPageData<CommitteePageData>();
 
@@ -37,35 +38,44 @@
   // Determine if this is a principal campaign committee
   const isPrincipal = pageData.committee?.designation === 'P' && pageData.candidate;
   const committeeTypeLabel = getCommitteeTypeLabel(pageData.committee?.committee_type);
+
+  // Build breadcrumb items
+  function getBreadcrumbItems(): BreadcrumbItem[] {
+    const items: BreadcrumbItem[] = [{ label: 'FEC Data', href: '/-/libfec' }];
+
+    const cand = pageData.candidate;
+    if (cand?.office && cand?.state) {
+      let contestLabel = cand.state + ' ' + (officeNames[cand.office] || cand.office);
+      if (cand.office === 'H' && cand.district) {
+        contestLabel += ' ' + cand.district;
+      }
+
+      const contestParams = new URLSearchParams();
+      contestParams.set('state', cand.state);
+      contestParams.set('office', cand.office);
+      contestParams.set('cycle', pageData.cycle.toString());
+      if (cand.office === 'H' && cand.district) {
+        contestParams.set('district', cand.district.toString());
+      }
+
+      items.push({ label: contestLabel, href: `/-/libfec/contest?${contestParams.toString()}` });
+
+      items.push({
+        label: cand.name || 'Candidate',
+        href: `/-/libfec/candidate/${cand.candidate_id}?cycle=${pageData.cycle}`,
+      });
+    }
+
+    items.push({ label: 'Committee' });
+    return items;
+  }
+
+  const breadcrumbItems = getBreadcrumbItems();
 </script>
 
 <div class="committee-page">
   <div class="header">
-    <div class="breadcrumb">
-      <a href="/-/libfec">FEC Data</a>
-      {#if pageData.candidate?.office && pageData.candidate?.state}
-        &rarr;
-        <a
-          href="/-/libfec/contest?state={pageData.candidate.state}&office={pageData.candidate
-            .office}{pageData.candidate.office === 'H' && pageData.candidate.district
-            ? '&district=' + pageData.candidate.district
-            : ''}&cycle={pageData.cycle}"
-        >
-          {pageData.candidate.state}
-          {officeNames[pageData.candidate.office] || pageData.candidate.office}
-          {#if pageData.candidate.office === 'H' && pageData.candidate.district}
-            {pageData.candidate.district}
-          {/if}
-        </a>
-      {/if}
-      {#if pageData.candidate}
-        &rarr;
-        <a href="/-/libfec/candidate/{pageData.candidate.candidate_id}?cycle={pageData.cycle}">
-          {pageData.candidate.name}
-        </a>
-      {/if}
-      &rarr; Committee
-    </div>
+    <Breadcrumb items={breadcrumbItems} />
     <div class="title-row">
       <h1>
         {pageData.committee?.name || pageData.committee_id}
@@ -237,20 +247,6 @@
   }
 
   .external-link a:hover {
-    text-decoration: underline;
-  }
-
-  .breadcrumb {
-    font-size: 0.9rem;
-    color: #666;
-  }
-
-  .breadcrumb a {
-    color: #0066cc;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
     text-decoration: underline;
   }
 

@@ -13,6 +13,7 @@
   import F24 from './forms/F24.svelte';
   import F6 from './forms/F6.svelte';
   import F99 from './forms/F99.svelte';
+  import Breadcrumb, { type BreadcrumbItem } from './components/Breadcrumb.svelte';
 
   const pageData = loadPageData<FilingDetailPageData>();
 
@@ -27,10 +28,28 @@
 
   // Determine report type for conditional rendering
   const reportType = filingData?.cover_record_form || 'Unknown';
+
+  // Build breadcrumb items
+  function getBreadcrumbItems(): BreadcrumbItem[] {
+    const items: BreadcrumbItem[] = [{ label: 'FEC Data', href: '/-/libfec' }];
+
+    if (filingData?.filer_id) {
+      items.push({
+        label: filingData.filer_name || filingData.filer_id,
+        href: `/-/libfec/committee/${filingData.filer_id}`,
+      });
+    }
+
+    items.push({ label: `Filing ${filingId}` });
+    return items;
+  }
+
+  const breadcrumbItems = getBreadcrumbItems();
 </script>
 
 <div class="filing-detail">
   <div class="header">
+    <Breadcrumb items={breadcrumbItems} />
     <h1>FEC-{filingId} {reportType}</h1>
     {#if filingData?.filer_name}
       <div class="filer-info">

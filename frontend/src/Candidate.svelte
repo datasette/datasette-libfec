@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CandidatePageData } from './page_data/CandidatePageData.types.ts';
   import { loadPageData } from './page_data/load.ts';
+  import Breadcrumb, { type BreadcrumbItem } from './components/Breadcrumb.svelte';
 
   const pageData = loadPageData<CandidatePageData>();
 
@@ -41,26 +42,32 @@
   }
 
   const statusLabel = getStatusLabel(pageData.candidate?.incumbent_challenger_status);
+
+  // Build breadcrumb items
+  function getBreadcrumbItems(): BreadcrumbItem[] {
+    const items: BreadcrumbItem[] = [{ label: 'FEC Data', href: '/-/libfec' }];
+
+    const c = pageData.candidate;
+    const state = c?.state;
+    const office = c?.office;
+    if (c && state && office) {
+      let contestLabel = state + ' ' + (officeNames[office] || office);
+      if (office === 'H' && c.district) {
+        contestLabel += ' ' + c.district;
+      }
+      items.push({ label: contestLabel, href: getContestUrl(c) });
+    }
+
+    items.push({ label: 'Candidate' });
+    return items;
+  }
+
+  const breadcrumbItems = getBreadcrumbItems();
 </script>
 
 <div class="candidate-page">
   <div class="header">
-    <div class="breadcrumb">
-      <a href="/-/libfec">FEC Data</a>
-      {#if pageData.candidate}
-        &rarr;
-        <a href={getContestUrl(pageData.candidate)}>
-          {pageData.candidate.state}
-          {pageData.candidate.office
-            ? officeNames[pageData.candidate.office] || pageData.candidate.office
-            : ''}
-          {#if pageData.candidate.office === 'H' && pageData.candidate.district}
-            {pageData.candidate.district}
-          {/if}
-        </a>
-      {/if}
-      &rarr; Candidate
-    </div>
+    <Breadcrumb items={breadcrumbItems} />
 
     <div class="title-row">
       <h1>
@@ -250,21 +257,6 @@
   }
 
   .external-link a:hover {
-    text-decoration: underline;
-  }
-
-  .breadcrumb {
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 0.5rem;
-  }
-
-  .breadcrumb a {
-    color: #0066cc;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
     text-decoration: underline;
   }
 

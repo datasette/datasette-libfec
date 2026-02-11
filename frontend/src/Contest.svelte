@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ContestPageData, Candidate } from './page_data/ContestPageData.types.ts';
   import { loadPageData } from './page_data/load.ts';
+  import Breadcrumb from './components/Breadcrumb.svelte';
 
   const pageData = loadPageData<ContestPageData>();
 
@@ -37,13 +38,11 @@
 
 <div class="contest-page">
   <div class="header">
+    <Breadcrumb items={[{ label: 'FEC Data', href: '/-/libfec' }, { label: 'Contest' }]} />
     <h1>{pageData.contest_description}</h1>
     <div class="meta">
       <span class="cycle">{pageData.cycle} Election Cycle</span>
       <span class="office">{officeNames[pageData.office] || pageData.office}</span>
-    </div>
-    <div class="breadcrumb">
-      <a href="/-/libfec">FEC Data</a> &rarr; Contest
     </div>
   </div>
   <div>
@@ -154,20 +153,6 @@
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.9rem;
-  }
-
-  .breadcrumb {
-    font-size: 0.9rem;
-    color: #666;
-  }
-
-  .breadcrumb a {
-    color: #0066cc;
-    text-decoration: none;
-  }
-
-  .breadcrumb a:hover {
-    text-decoration: underline;
   }
 
   .error-box {
