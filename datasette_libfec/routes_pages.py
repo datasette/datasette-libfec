@@ -16,6 +16,7 @@ from .page_data import (
     ExportInputInfo,
     ExportPageData,
     Filing,
+    FilingDayPageData,
     FilingDetailPageData,
     IndexPageData,
     ImportPageData,
@@ -551,6 +552,26 @@ async def committee_page(datasette, request, committee_id: str):
             {
                 "page_title": f"{committee_name} - Committee",
                 "entrypoint": "src/committee_view.ts",
+                "page_data": page_data.model_dump(),
+            },
+        )
+    )
+
+
+@router.GET("/-/libfec/filing-day$")
+@check_permission()
+async def filing_day_page(datasette, request):
+    """
+    Filing Day page for comparing F3 reports from the same reporting period.
+    """
+    db = get_libfec_database(datasette)
+    page_data = FilingDayPageData(database_name=db.name)
+    return Response.html(
+        await datasette.render_template(
+            "libfec_base.html",
+            {
+                "page_title": "Filing Day",
+                "entrypoint": "src/filing_day_view.ts",
                 "page_data": page_data.model_dump(),
             },
         )

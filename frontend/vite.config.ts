@@ -6,8 +6,13 @@ import {compile} from "json-schema-to-typescript";
 // https://vite.dev/config/
 export default defineConfig({
   server: {
-    cors: {
-      origin: ["http://localhost:8004", "http://127.0.0.1:8004"],
+    port: 5177,
+    strictPort: true,
+    cors: true,
+    hmr: {
+      host: "localhost",
+      port: 5177,
+      protocol: "ws",
     },
   },
   plugins: [
@@ -48,6 +53,7 @@ export default defineConfig({
         candidate: "src/candidate_view.ts",
         committee: "src/committee_view.ts",
         export: "src/export_view.ts",
+        filing_day: "src/filing_day_view.ts",
       },
     },
   },

@@ -1,0 +1,33 @@
+{
+  "properties": {
+    "database_name": {
+      "title": "Database Name",
+      "type": "string"
+    },
+    "years": {
+      "default": [
+        2030,
+        2029,
+        2028,
+        2027,
+        2026,
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020
+      ],
+      "items": {
+        "type": "integer"
+      },
+      "title": "Years",
+      "type": "array"
+    }
+  },
+  "required": [
+    "database_name"
+  ],
+  "title": "FilingDayPageData",
+  "type": "object"
+}

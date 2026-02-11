@@ -132,6 +132,23 @@ class ExportPageData(BaseModel):
     error: str | None = None
 
 
+class FilingDayPageData(BaseModel):
+    database_name: str
+    years: list[int] = [
+        2030,
+        2029,
+        2028,
+        2027,
+        2026,
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+    ]
+
+
 __exports__ = [
     CandidatePageData,
     CommitteePageData,
@@ -141,4 +158,5 @@ __exports__ = [
     ImportPageData,
     RssPageData,
     ExportPageData,
+    FilingDayPageData,
 ]

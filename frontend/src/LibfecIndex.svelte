@@ -10,6 +10,13 @@
   <h1>FEC Data</h1>
   <p>Federal Election Commission data explorer.</p>
 
+  <div class="nav-cards">
+    <a href="/-/libfec/filing-day" class="nav-card">
+      <h2>Filing Day</h2>
+      <p>Compare F3 reports from candidates for a specific reporting period.</p>
+    </a>
+  </div>
+
   {#if pageData.can_write}
     <div class="nav-cards">
       <a href="/-/libfec/import" class="nav-card">
