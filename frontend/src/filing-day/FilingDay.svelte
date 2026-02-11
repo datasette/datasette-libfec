@@ -477,18 +477,31 @@ SELECT * FROM final
           <thead>
             <tr>
               <th class="numeric">Rank</th>
-              <th class="sortable" onclick={() => toggleSort('candidate_name')}>
+              <th
+                class="sortable"
+                class:sorted={sortColumn === 'candidate_name'}
+                onclick={() => toggleSort('candidate_name')}
+              >
                 Candidate{getSortIndicator('candidate_name')}
               </th>
-              <th class="sortable" onclick={() => toggleSort('party_affiliation')}>
+              <th
+                class="sortable"
+                class:sorted={sortColumn === 'party_affiliation'}
+                onclick={() => toggleSort('party_affiliation')}
+              >
                 Party{getSortIndicator('party_affiliation')}
               </th>
-              <th class="sortable" onclick={() => toggleSort('state')}>
+              <th
+                class="sortable center"
+                class:sorted={sortColumn === 'state'}
+                onclick={() => toggleSort('state')}
+              >
                 State/Dist{getSortIndicator('state')}
               </th>
               {#each activeColumns as column}
                 <th
                   class="sortable numeric"
+                  class:sorted={sortColumn === column.id}
                   onclick={() => toggleSort(column.id)}
                   title={column.description}
                 >
@@ -502,26 +515,29 @@ SELECT * FROM final
             {#each sortedReports() as report, index}
               <tr>
                 <td class="numeric rank">{index + 1}</td>
-                <td>
+                <td class:sorted={sortColumn === 'candidate_name'}>
                   <a href={getCandidateUrl(report)}>
                     {report.candidate_name || 'Unknown'}
                   </a>
                   {#if report.incumbent_challenger_status === 'I'}
-                    <span class="status-badge incumbent">Inc</span>
+                    <span class="status-badge incumbent">Incumbent</span>
                   {/if}
                 </td>
-                <td>
+                <td class:sorted={sortColumn === 'party_affiliation'}>
                   {#if report.party_affiliation}
                     <span class="party-badge {report.party_affiliation.toLowerCase()}">
                       {report.party_affiliation}
                     </span>
                   {/if}
                 </td>
-                <td>
+                <td class="center" class:sorted={sortColumn === 'state'}>
                   <a href={getContestUrl(report)}>{getContestLabel(report)}</a>
                 </td>
                 {#each activeColumns as column}
-                  <td class="numeric" class:zero-value={isZeroValue(report[column.id] as number)}
+                  <td
+                    class="numeric"
+                    class:zero-value={isZeroValue(report[column.id] as number)}
+                    class:sorted={sortColumn === column.id}
                     >{formatValue(report[column.id] as number, column)}</td
                   >
                 {/each}
@@ -722,6 +738,16 @@ SELECT * FROM final
   .reports-table th.numeric,
   .reports-table td.numeric {
     text-align: right;
+  }
+
+  .reports-table th.center,
+  .reports-table td.center {
+    text-align: center;
+  }
+
+  .reports-table th.sorted,
+  .reports-table td.sorted {
+    background: #fffbe6;
   }
 
   .reports-table td.zero-value {
