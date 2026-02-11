@@ -66,11 +66,12 @@
 
   // Filter state
   let reportCode = $state(urlParams.get('report') || 'Q1');
-  let year = $state(urlParams.get('year') || String(pageData.years[0]));
+  let year = $state(urlParams.get('year') || String(2025));
   let office = $state(urlParams.get('office') || 'H');
   let stateFilter = $state(urlParams.get('state') || '');
   let district = $state(urlParams.get('district') || '');
   let partyFilter = $state(urlParams.get('party') || '');
+  let statusFilter = $state(urlParams.get('status') || '');
 
   // Minimum cash on hand filter
   let minCashEnabled = $state(urlParams.has('min_cash'));
@@ -138,6 +139,7 @@ candidates_in_race AS (
     AND IIF(:office != 'H' OR :district = '', 1, cand.district = :district)
     AND IIF(:party = '', 1,
         IIF(:party = 'OTH', cand.party_affiliation NOT IN ('DEM', 'REP'), cand.party_affiliation = :party))
+    AND IIF(:status = '', 1, cand.incumbent_challenger_status = :status)
   GROUP BY cand.candidate_id
 ),
 final AS (
@@ -166,6 +168,7 @@ SELECT * FROM final
       state: stateFilter,
       district: district,
       party: partyFilter,
+      status: statusFilter,
       min_cash_enabled: minCashEnabled ? '1' : '0',
       min_cash: minCashAmount,
     };
@@ -186,6 +189,7 @@ SELECT * FROM final
     if (stateFilter) params.set('state', stateFilter);
     if (district) params.set('district', district);
     if (partyFilter) params.set('party', partyFilter);
+    if (statusFilter) params.set('status', statusFilter);
     if (minCashEnabled) params.set('min_cash', minCashAmount);
     params.set('cols', selectedColumnIds.join(','));
 
@@ -202,6 +206,7 @@ SELECT * FROM final
     stateFilter;
     district;
     partyFilter;
+    statusFilter;
     minCashEnabled;
     minCashAmount;
     selectedColumnIds;
@@ -304,6 +309,25 @@ SELECT * FROM final
     return `/-/libfec/candidate/${report.candidate_id}`;
   }
 
+  function getContestUrl(report: FilingReport): string {
+    const params = new URLSearchParams();
+    if (report.state) params.set('state', report.state);
+    params.set('office', office);
+    if (office === 'H' && report.district) params.set('district', report.district);
+    // Cycle is always an even year (odd years round up)
+    const yearNum = parseInt(year, 10);
+    const cycle = yearNum % 2 === 1 ? yearNum + 1 : yearNum;
+    params.set('cycle', String(cycle));
+    return `/-/libfec/contest?${params.toString()}`;
+  }
+
+  function getContestLabel(report: FilingReport): string {
+    if (office === 'H' && report.district) {
+      return `${report.state || ''}-${report.district}`;
+    }
+    return report.state || '';
+  }
+
   function handleColumnsApply(columns: string[]) {
     selectedColumnIds = columns;
     // Reset sort to first column if current sort column is no longer visible
@@ -311,6 +335,16 @@ SELECT * FROM final
     if (!columns.includes(sortColumn) && firstCol) {
       sortColumn = firstCol;
     }
+  }
+
+  function getSqlQueryUrl(): string {
+    const params = new URLSearchParams();
+    params.set('sql', sql.trim());
+    const queryParams = getQueryParams();
+    for (const [key, value] of Object.entries(queryParams)) {
+      params.set(key, value);
+    }
+    return `/${pageData.database_name}/-/query?${params.toString()}`;
   }
 </script>
 
@@ -372,10 +406,6 @@ SELECT * FROM final
           />
         </label>
       {/if}
-
-      <button type="button" class="edit-columns-btn" onclick={() => (showColumnSelector = true)}>
-        Edit Columns ({selectedColumnIds.length})
-      </button>
     </div>
 
     <div class="filter-row">
@@ -389,8 +419,18 @@ SELECT * FROM final
         </select>
       </label>
 
+      <label>
+        Status
+        <select bind:value={statusFilter}>
+          <option value="">All</option>
+          <option value="I">Incumbents</option>
+          <option value="C">Challengers</option>
+          <option value="O">Open Seat</option>
+        </select>
+      </label>
+
       <label class="min-cash-filter">
-        Min COH
+        <span>Min COH</span>
         <input type="checkbox" bind:checked={minCashEnabled} />
         {#if minCashEnabled}
           <input
@@ -418,7 +458,15 @@ SELECT * FROM final
     {:else if sortedReports().length === 0}
       <p class="no-data">No filings found matching your criteria.</p>
     {:else}
-      <p class="result-count">{sortedReports().length} filings found</p>
+      <div class="results-header">
+        <p class="result-count">{sortedReports().length >= 500 ? '500+' : sortedReports().length} filings found</p>
+        <div class="results-actions">
+          <button type="button" class="edit-columns-btn" onclick={() => (showColumnSelector = true)}>
+            Edit Columns ({selectedColumnIds.length})
+          </button>
+          <a href={getSqlQueryUrl()} target="_blank" class="view-sql-link">View SQL</a>
+        </div>
+      </div>
       <div class="table-wrapper">
         <table class="reports-table">
           <thead>
@@ -465,7 +513,7 @@ SELECT * FROM final
                   {/if}
                 </td>
                 <td>
-                  {report.state || ''}{#if office === 'H' && report.district}-{report.district}{/if}
+                  <a href={getContestUrl(report)}>{getContestLabel(report)}</a>
                 </td>
                 {#each activeColumns as column}
                   <td class="numeric" class:zero-value={isZeroValue(report[column.id] as number)}
@@ -620,9 +668,32 @@ SELECT * FROM final
     font-style: italic;
   }
 
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
   .result-count {
     color: #666;
-    margin-bottom: 1rem;
+    margin: 0;
+  }
+
+  .results-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .view-sql-link {
+    color: #0066cc;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .view-sql-link:hover {
+    text-decoration: underline;
   }
 
   .table-wrapper {
