@@ -353,6 +353,7 @@ SELECT * FROM final
   <div class="header">
     <Breadcrumb items={[{ label: 'FEC Data', href: '/-/libfec' }, { label: 'Filing Day' }]} />
     <h1>Filing Day</h1>
+    <p>Compare how much candidates raised, spent, and have on hand for a given reporting period.</p>
   </div>
 
   <section class="filters">
