@@ -102,7 +102,7 @@
     {#if isPrincipal}
       <p class="subtitle">
         Principal campaign committee for
-        <a href="${basePath}/candidate/{pageData.candidate?.candidate_id}?cycle={pageData.cycle}">
+        <a href="{basePath}/candidate/{pageData.candidate?.candidate_id}?cycle={pageData.cycle}">
           {pageData.candidate?.name}
         </a>
       </p>
@@ -139,7 +139,7 @@
           {#each pageData.filings as filing}
             <tr>
               <td>
-                <a href="${basePath}/filing/{filing.filing_id}">
+                <a href="{basePath}/filing/{filing.filing_id}">
                   FEC-{filing.filing_id}
                 </a>
               </td>
