@@ -30,7 +30,7 @@ interface SankeyChartOptions {
   nodeLabel?: ((d: any) => string | string[]) | undefined;
   nodeTitle?: ((d: any) => string) | null;
   nodeAlign?: NodeAlign;
-  nodeSort?: ((a: any, b: any) => number) | undefined;
+  nodeSort?: ((a: any, b: any) => number) | null | undefined;
   nodeWidth?: number;
   nodePadding?: number;
   nodeLabelPadding?: number;
@@ -75,7 +75,7 @@ export function SankeyChart(
     nodeTitle = (d: any) =>
       `${typeof format === 'function' ? format(d.value) : d3.format(format)(d.value)}`, // given d in (computed) nodes, hover text
     nodeAlign = align, // Sankey node alignment strategy: left, right, justify, center
-    nodeSort = undefined as ((a: any, b: any) => number) | undefined, // comparator function to order nodes
+    nodeSort = undefined as ((a: any, b: any) => number) | null | undefined, // comparator function to order nodes; null preserves input order
     nodeWidth = 15, // width of node rects
     nodePadding = 10, // vertical separation between adjacent nodes
     nodeLabelPadding = 6, // horizontal separation between node and label

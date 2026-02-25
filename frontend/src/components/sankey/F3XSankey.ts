@@ -480,6 +480,7 @@ export function F3XSankey(
       nodeGroups: Object.keys(groupColors),
       colors: Object.values(groupColors),
       nodeAlign: 'justify',
+      nodeSort: null,
       linkColor: 'source-target',
       nodeWidth: 10,
       nodeClickable: (d) => f3x_nodes.find((d2) => d.id === d2.id)?.clickable ?? false,
