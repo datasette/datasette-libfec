@@ -129,20 +129,22 @@ def database_actions(datasette, actor, database):
 
 @hookimpl
 def startup(datasette):
-    """Store RSS config for lazy initialization (started on first request)."""
+    """Apply internal migrations and initialize RSS watcher."""
 
     async def inner():
+        from sqlite_utils import Database as SqliteUtilsDatabase
+        from .internal_migrations import internal_migrations
         from .rss_watcher import rss_watcher
 
-        # Check plugin config for rss-sync-interval-seconds
-        config = datasette.plugin_config("datasette-libfec") or {}
-        interval = config.get("rss-sync-interval-seconds")
+        # Apply internal database migrations
+        def migrate(connection):
+            db = SqliteUtilsDatabase(connection)
+            internal_migrations.apply(db)
 
-        if not interval:
-            return
+        await datasette.get_internal_database().execute_write_fn(migrate)
 
-        # Store config for lazy init - task will start on first API request
-        rss_watcher.set_config(interval)
+        # Give the watcher a reference to datasette for config access
+        rss_watcher.set_datasette(datasette)
 
     return inner
 

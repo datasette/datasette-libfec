@@ -2,21 +2,42 @@
 
 from pydantic import BaseModel
 from datasette import Response
+from datasette_plugin_router import Body
 from typing import Optional
 
-from .router import router, check_permission
+from .router import router, check_permission, check_write_permission
 from .rss_watcher import rss_watcher
+from .internal_db import InternalDB
 
 
 class RssStatusResponse(BaseModel):
     enabled: bool
     running: bool
     phase: str
-    interval_seconds: Optional[int] = None
+    interval_seconds: int = 60
     seconds_until_next_sync: Optional[int] = None
     exported_count: int = 0
     total_count: int = 0
     error_message: Optional[str] = None
+
+
+class RssConfigResponse(BaseModel):
+    enabled: bool
+    interval_seconds: int = 60
+    cover_only: bool = True
+    state_filter: Optional[str] = None
+    since_duration: str = "1 day"
+    database_name: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class RssConfigUpdateParams(BaseModel):
+    enabled: Optional[bool] = None
+    interval_seconds: Optional[int] = None
+    cover_only: Optional[bool] = None
+    state_filter: Optional[str] = None
+    since_duration: Optional[str] = None
+    database_name: Optional[str] = None
 
 
 class RssSyncRecord(BaseModel):
@@ -24,31 +45,35 @@ class RssSyncRecord(BaseModel):
     sync_uuid: str
     created_at: str
     completed_at: Optional[str] = None
-    status: str
-    exported_count: int
+    since_filter: Optional[str] = None
+    preset_filter: Optional[str] = None
+    form_type_filter: Optional[str] = None
+    committee_filter: Optional[str] = None
+    state_filter: Optional[str] = None
+    party_filter: Optional[str] = None
     total_feed_items: Optional[int] = None
+    filtered_items: Optional[int] = None
+    new_filings_count: int = 0
+    exported_count: int = 0
+    cover_only: bool = False
+    status: str = "started"
     error_message: Optional[str] = None
 
 
-@router.GET("/(?P<database>[^/]+)/-/api/libfec/rss/status")
+@router.GET("/(?P<database>[^/]+)/-/api/libfec/rss/status$", output=RssStatusResponse)
 @check_permission()
 async def rss_status(datasette, request, database: str):
-    from .state import libfec_client
+    rss_watcher.ensure_started()
 
-    # Lazy initialization - start watcher if configured but not running
-    db = datasette.databases[database]
-    if db.path:
-        rss_watcher.ensure_started(db.path, libfec_client)
-
-    running = rss_watcher.is_running()
-    interval = rss_watcher._interval_seconds
+    internal = InternalDB(datasette.get_internal_database())
+    config = await internal.get_rss_config()
 
     return Response.json(
         RssStatusResponse(
-            enabled=running,
-            running=running,
+            enabled=config.enabled,
+            running=rss_watcher.is_running() and config.enabled,
             phase=rss_watcher.phase,
-            interval_seconds=interval,
+            interval_seconds=config.interval_seconds,
             seconds_until_next_sync=rss_watcher.seconds_until_next_sync(),
             exported_count=rss_watcher.exported_count,
             total_count=rss_watcher.total_count,
@@ -57,7 +82,39 @@ async def rss_status(datasette, request, database: str):
     )
 
 
-@router.GET("/(?P<database>[^/]+)/-/api/libfec/rss/syncs")
+@router.GET("/(?P<database>[^/]+)/-/api/libfec/rss/config$", output=RssConfigResponse)
+@check_permission()
+async def rss_config_get(datasette, request, database: str):
+    internal = InternalDB(datasette.get_internal_database())
+    config = await internal.get_rss_config()
+    return Response.json(config.model_dump())
+
+
+@router.POST(
+    "/(?P<database>[^/]+)/-/api/libfec/rss/config/update$",
+    output=RssConfigResponse,
+)
+@check_write_permission()
+async def rss_config_update(
+    datasette, request, database: str, params: Body[RssConfigUpdateParams]
+):
+    updates = params.model_dump(exclude_none=True)
+
+    # If enabling and no database_name set, auto-set to current database
+    if updates.get("enabled") and "database_name" not in updates:
+        updates["database_name"] = database
+
+    internal = InternalDB(datasette.get_internal_database())
+    config = await internal.update_rss_config(**updates)
+
+    # Ensure watcher loop is started and wake it to pick up changes immediately
+    rss_watcher.ensure_started()
+    rss_watcher.wake()
+
+    return Response.json(config.model_dump())
+
+
+@router.GET("/(?P<database>[^/]+)/-/api/libfec/rss/syncs$")
 @check_permission()
 async def rss_syncs(datasette, request, database: str):
     """List recent sync attempts from libfec_rss_syncs table."""
@@ -71,8 +128,11 @@ async def rss_syncs(datasette, request, database: str):
         return Response.json({"syncs": []})
 
     result = await db.execute("""
-        SELECT sync_id, sync_uuid, created_at, completed_at, status,
-               exported_count, total_feed_items, error_message
+        SELECT sync_id, sync_uuid, created_at, completed_at,
+               since_filter, preset_filter, form_type_filter,
+               committee_filter, state_filter, party_filter,
+               total_feed_items, filtered_items, new_filings_count,
+               exported_count, cover_only, status, error_message
         FROM libfec_rss_syncs
         ORDER BY created_at DESC
         LIMIT 20
@@ -86,10 +146,19 @@ async def rss_syncs(datasette, request, database: str):
                 sync_uuid=row[1],
                 created_at=row[2],
                 completed_at=row[3],
-                status=row[4],
-                exported_count=row[5] or 0,
-                total_feed_items=row[6],
-                error_message=row[7],
+                since_filter=row[4],
+                preset_filter=row[5],
+                form_type_filter=row[6],
+                committee_filter=row[7],
+                state_filter=row[8],
+                party_filter=row[9],
+                total_feed_items=row[10],
+                filtered_items=row[11],
+                new_filings_count=row[12] or 0,
+                exported_count=row[13] or 0,
+                cover_only=bool(row[14]),
+                status=row[15] or "started",
+                error_message=row[16],
             ).model_dump()
         )
 

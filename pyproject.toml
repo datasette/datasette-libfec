@@ -13,6 +13,8 @@ dependencies = [
     "datasette>=1a23",
     "datasette-plugin-router>=0.0.1a2",
     "libfec>=0.0.20",
+    "sqlite-migrate>=0.1b0",
+    "sqlite-utils>=3.38",
 ]
 
 [dependency-groups]

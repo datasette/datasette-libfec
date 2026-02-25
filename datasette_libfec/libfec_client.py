@@ -60,6 +60,7 @@ class LibfecClient:
         state: Optional[str],
         cover_only: bool,
         watcher_state,  # RssRuntimeState or similar with same attributes
+        since: str = "1 day",
     ) -> None:
         """
         Run RSS watch using RPC mode with real-time progress tracking.
@@ -108,7 +109,7 @@ class LibfecClient:
             await rpc_client.start_process()
 
             result = await rpc_client.sync_start(
-                since="1 day",
+                since=since,
                 state=state,
                 cover_only=cover_only,
                 output_path=output_db,

@@ -1,8 +1,8 @@
 """
-RSS Watcher - background sync based on plugin config.
+RSS Watcher - background sync driven by internal DB config.
 
-If datasette-libfec plugin config has rss-sync-interval-seconds set,
-syncs RSS feed at that interval. Always cover_only, no state filter.
+Reads config from datasette_libfec_rss_config each iteration.
+If enabled=False, sleeps and re-checks. If enabled=True, runs sync.
 """
 
 import asyncio
@@ -14,17 +14,16 @@ if TYPE_CHECKING:
 
 
 class RssWatcher:
-    """RSS watcher controlled by plugin config."""
+    """RSS watcher controlled by internal DB config."""
 
     def __init__(self):
         self._task: Optional[asyncio.Task] = None
-        self._db_path: Optional[str] = None
-        self._libfec_client = None
-        self._interval_seconds: Optional[int] = None
-
-        # Lazy initialization state (set by startup hook, started on first request)
-        self._configured_interval: Optional[int] = None
+        self._datasette = None
         self._initialized: bool = False
+        self._wake_event: Optional[asyncio.Event] = None
+
+        # Current interval for status reporting
+        self._current_interval: Optional[int] = None
 
         # Progress tracking for RPC callbacks
         self.phase: str = "idle"
@@ -44,11 +43,11 @@ class RssWatcher:
     def is_running(self) -> bool:
         return self._task is not None and not self._task.done()
 
-    def set_config(self, interval_seconds: int) -> None:
-        """Store config from startup hook for later lazy initialization."""
-        self._configured_interval = interval_seconds
+    def set_datasette(self, datasette) -> None:
+        """Store datasette reference for config access."""
+        self._datasette = datasette
 
-    def ensure_started(self, db_path: str, libfec_client) -> None:
+    def ensure_started(self) -> None:
         """Lazy initialization - called on first request.
 
         Uses asyncio.get_running_loop().create_task() to ensure the task
@@ -57,33 +56,33 @@ class RssWatcher:
         if self._initialized or self.is_running():
             return
 
-        if self._configured_interval is None:
+        if self._datasette is None:
             return
 
         self._initialized = True
-        self._db_path = db_path
-        self._libfec_client = libfec_client
-        self._interval_seconds = self._configured_interval
-
+        self._wake_event = asyncio.Event()
         loop = asyncio.get_running_loop()
         self._task = loop.create_task(self._run_loop())
+
+    def wake(self) -> None:
+        """Signal the loop to wake up and re-check config immediately."""
+        if self._wake_event is not None:
+            self._wake_event.set()
+
+    async def _interruptible_sleep(self, seconds: float) -> None:
+        """Sleep that can be interrupted by wake()."""
+        assert self._wake_event is not None
+        self._wake_event.clear()
+        try:
+            await asyncio.wait_for(self._wake_event.wait(), timeout=seconds)
+        except asyncio.TimeoutError:
+            pass
 
     def seconds_until_next_sync(self) -> Optional[int]:
         if self._next_sync_time is None:
             return None
         remaining = self._next_sync_time - time.time()
         return max(0, int(remaining))
-
-    async def start(self, db_path: str, libfec_client, interval_seconds: int) -> None:
-        """Start watcher with given interval."""
-        if self.is_running():
-            return
-
-        self._db_path = db_path
-        self._libfec_client = libfec_client
-        self._interval_seconds = interval_seconds
-
-        self._task = asyncio.create_task(self._run_loop())
 
     async def stop(self) -> None:
         """Stop the watcher."""
@@ -113,26 +112,58 @@ class RssWatcher:
         self._next_sync_time = None
 
     async def _run_loop(self) -> None:
-        """Background sync loop."""
-        interval = self._interval_seconds
-        if not interval:
-            return
+        """Background sync loop - reads config from internal DB each iteration."""
+        from .internal_db import InternalDB
+        from .libfec_client import LibfecClient
 
         # Brief delay to let event loop stabilize
         await asyncio.sleep(1)
 
+        datasette = self._datasette
+        assert datasette is not None
+
+        internal = InternalDB(datasette.get_internal_database())
+        client = LibfecClient()
+
         while True:
+            config = await internal.get_rss_config()
+
+            if not config.enabled:
+                self._current_interval = None
+                self._next_sync_time = None
+                self.phase = "idle"
+                await self._interruptible_sleep(10)
+                continue
+
+            if not config.database_name:
+                self.phase = "idle"
+                await self._interruptible_sleep(10)
+                continue
+
+            # Resolve database_name to file path
+            db = datasette.databases.get(config.database_name)
+            if not db or not db.path:
+                self.phase = "error"
+                self.error_message = (
+                    f"Database '{config.database_name}' not found or has no path"
+                )
+                await self._interruptible_sleep(10)
+                continue
+
+            self._current_interval = config.interval_seconds
+
             self.phase = "syncing"
             self.exported_count = 0
             self.total_count = 0
             self.error_message = None
 
             try:
-                await self._libfec_client.rss_watch_with_progress(
-                    self._db_path,
-                    None,  # No state filter
-                    True,  # cover_only
+                await client.rss_watch_with_progress(
+                    db.path,
+                    config.state_filter,
+                    config.cover_only,
                     self,
+                    since=config.since_duration,
                 )
                 self.phase = "idle"
 
@@ -142,8 +173,11 @@ class RssWatcher:
                 self.phase = "error"
                 self.error_message = str(e)
 
+            interval = config.interval_seconds
+            self._current_interval = interval
             self._next_sync_time = time.time() + interval
-            await asyncio.sleep(interval)
+            self.phase = "waiting"
+            await self._interruptible_sleep(interval)
 
 
 rss_watcher = RssWatcher()

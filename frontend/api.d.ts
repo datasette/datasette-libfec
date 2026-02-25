@@ -27,12 +27,221 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            /** Enabled */
+                            enabled: boolean;
+                            /** Running */
+                            running: boolean;
+                            /** Phase */
+                            phase: string;
+                            /**
+                             * Interval Seconds
+                             * @default 60
+                             */
+                            interval_seconds: number;
+                            /**
+                             * Seconds Until Next Sync
+                             * @default null
+                             */
+                            seconds_until_next_sync: number | null;
+                            /**
+                             * Exported Count
+                             * @default 0
+                             */
+                            exported_count: number;
+                            /**
+                             * Total Count
+                             * @default 0
+                             */
+                            total_count: number;
+                            /**
+                             * Error Message
+                             * @default null
+                             */
+                            error_message: string | null;
+                        };
+                    };
                 };
             };
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{database}/-/api/libfec/rss/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    database: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Enabled */
+                            enabled: boolean;
+                            /**
+                             * Interval Seconds
+                             * @default 60
+                             */
+                            interval_seconds: number;
+                            /**
+                             * Cover Only
+                             * @default true
+                             */
+                            cover_only: boolean;
+                            /**
+                             * State Filter
+                             * @default null
+                             */
+                            state_filter: string | null;
+                            /**
+                             * Since Duration
+                             * @default 1 day
+                             */
+                            since_duration: string;
+                            /**
+                             * Database Name
+                             * @default null
+                             */
+                            database_name: string | null;
+                            /**
+                             * Updated At
+                             * @default null
+                             */
+                            updated_at: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{database}/-/api/libfec/rss/config/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    database: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * Enabled
+                         * @default null
+                         */
+                        enabled?: boolean | null;
+                        /**
+                         * Interval Seconds
+                         * @default null
+                         */
+                        interval_seconds?: number | null;
+                        /**
+                         * Cover Only
+                         * @default null
+                         */
+                        cover_only?: boolean | null;
+                        /**
+                         * State Filter
+                         * @default null
+                         */
+                        state_filter?: string | null;
+                        /**
+                         * Since Duration
+                         * @default null
+                         */
+                        since_duration?: string | null;
+                        /**
+                         * Database Name
+                         * @default null
+                         */
+                        database_name?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Enabled */
+                            enabled: boolean;
+                            /**
+                             * Interval Seconds
+                             * @default 60
+                             */
+                            interval_seconds: number;
+                            /**
+                             * Cover Only
+                             * @default true
+                             */
+                            cover_only: boolean;
+                            /**
+                             * State Filter
+                             * @default null
+                             */
+                            state_filter: string | null;
+                            /**
+                             * Since Duration
+                             * @default 1 day
+                             */
+                            since_duration: string;
+                            /**
+                             * Database Name
+                             * @default null
+                             */
+                            database_name: string | null;
+                            /**
+                             * Updated At
+                             * @default null
+                             */
+                            updated_at: string | null;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

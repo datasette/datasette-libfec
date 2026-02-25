@@ -8,32 +8,24 @@
   const dbName = get(databaseNameStore);
   const client = createClient<paths>({ baseUrl: '/' });
 
-  interface RssStatus {
-    enabled: boolean;
-    running: boolean;
-    phase: string;
-    interval_seconds: number | null;
-    seconds_until_next_sync: number | null;
-    exported_count: number;
-    total_count: number;
-    error_message: string | null;
-  }
-
-  interface SyncRecord {
-    sync_id: number;
-    sync_uuid: string;
-    created_at: string;
-    completed_at: string | null;
-    status: string;
-    exported_count: number;
-    total_feed_items: number | null;
-    error_message: string | null;
-  }
+  type RssStatus = NonNullable<
+    paths['/{database}/-/api/libfec/rss/status']['get']['responses']['200']['content']['application/json']
+  >;
+  type RssConfig = NonNullable<
+    paths['/{database}/-/api/libfec/rss/config']['get']['responses']['200']['content']['application/json']
+  >;
 
   let status = $state<RssStatus | null>(null);
-  let syncs = $state<SyncRecord[]>([]);
+  let config = $state<RssConfig | null>(null);
+  let saving = $state(false);
 
-  // Client-side countdown tracking
+  // Form state
+  let formIntervalSeconds = $state(60);
+  let formCoverOnly = $state(true);
+  let formStateFilter = $state('');
+  let formSinceDuration = $state('1 day');
+
+  // Client-side countdown
   let nextSyncTimestamp = $state<Date | null>(null);
   let secondsRemaining = $state<number | null>(null);
 
@@ -46,75 +38,86 @@
 
   onMount(() => {
     loadStatus();
-    loadSyncs();
+    loadConfig();
 
-    // Update countdown every second
     const countdownInterval = setInterval(() => {
       if (nextSyncTimestamp && status?.running && !isActivelySyncing()) {
-        const now = Date.now();
-        const remaining = Math.floor((nextSyncTimestamp.getTime() - now) / 1000);
+        const remaining = Math.floor((nextSyncTimestamp.getTime() - Date.now()) / 1000);
         secondsRemaining = Math.max(0, remaining);
       }
     }, 1000);
 
-    // Poll server for status updates
     const statusInterval = setInterval(
       () => {
         loadStatus();
-        if (isActivelySyncing()) {
-          loadSyncs();
-        }
       },
-      isActivelySyncing() ? 2000 : 10000
+      isActivelySyncing() ? 2000 : 5000
     );
-
-    // Refresh sync history periodically
-    const syncsInterval = setInterval(() => {
-      loadSyncs();
-    }, 30000);
 
     return () => {
       clearInterval(countdownInterval);
       clearInterval(statusInterval);
-      clearInterval(syncsInterval);
     };
   });
 
   async function loadStatus() {
-    try {
-      const { data, error } = await client.GET('/{database}/-/api/libfec/rss/status', {
-        params: { path: { database: dbName } },
-      });
-      if (data && !error) {
-        status = data as unknown as RssStatus;
+    const { data } = await client.GET('/{database}/-/api/libfec/rss/status', {
+      params: { path: { database: dbName } },
+    });
+    if (!data) return;
+    status = data;
 
-        if (
-          status.seconds_until_next_sync !== null &&
-          status.seconds_until_next_sync !== undefined
-        ) {
-          nextSyncTimestamp = new Date(Date.now() + status.seconds_until_next_sync * 1000);
-          secondsRemaining = status.seconds_until_next_sync;
-        } else {
-          nextSyncTimestamp = null;
-          secondsRemaining = null;
-        }
-      }
-    } catch (error) {
-      console.error('Error loading RSS status:', error);
+    if (data.seconds_until_next_sync != null) {
+      nextSyncTimestamp = new Date(Date.now() + data.seconds_until_next_sync * 1000);
+      secondsRemaining = data.seconds_until_next_sync;
+    } else {
+      nextSyncTimestamp = null;
+      secondsRemaining = null;
     }
   }
 
-  async function loadSyncs() {
-    try {
-      const { data, error } = await client.GET('/{database}/-/api/libfec/rss/syncs', {
-        params: { path: { database: dbName } },
-      });
-      if (data && !error) {
-        syncs = (data as any).syncs || [];
-      }
-    } catch (error) {
-      console.error('Error loading sync history:', error);
+  async function loadConfig() {
+    const { data } = await client.GET('/{database}/-/api/libfec/rss/config', {
+      params: { path: { database: dbName } },
+    });
+    if (!data) return;
+    config = data;
+    formIntervalSeconds = data.interval_seconds;
+    formCoverOnly = data.cover_only;
+    formStateFilter = data.state_filter ?? '';
+    formSinceDuration = data.since_duration;
+  }
+
+  async function toggleEnabled() {
+    if (!config) return;
+    saving = true;
+    const { data } = await client.POST('/{database}/-/api/libfec/rss/config/update', {
+      params: { path: { database: dbName } },
+      body: { enabled: !config.enabled },
+    });
+    if (data) {
+      config = data as unknown as RssConfig;
     }
+    await loadStatus();
+    saving = false;
+  }
+
+  async function saveSettings() {
+    saving = true;
+    const { data } = await client.POST('/{database}/-/api/libfec/rss/config/update', {
+      params: { path: { database: dbName } },
+      body: {
+        interval_seconds: formIntervalSeconds,
+        cover_only: formCoverOnly,
+        state_filter: formStateFilter || null,
+        since_duration: formSinceDuration,
+      },
+    });
+    if (data) {
+      config = data as unknown as RssConfig;
+    }
+    await loadStatus();
+    saving = false;
   }
 
   function formatDuration(seconds: number): string {
@@ -131,10 +134,8 @@
   }
 
   function formatProgress(): string {
-    if (!status) return 'Unknown';
-    const phase = status.phase || 'idle';
-
-    switch (phase) {
+    if (!status) return '';
+    switch (status.phase) {
       case 'idle':
         return 'Idle';
       case 'syncing':
@@ -142,49 +143,19 @@
       case 'fetching':
         return 'Fetching RSS feed...';
       case 'exporting':
-        if (status.total_count && status.total_count > 0) {
-          const count = status.exported_count || 0;
-          const total = status.total_count;
-          const percent = Math.round((count / total) * 100);
-          return `Exporting: ${count}/${total} (${percent}%)`;
+        if (status.total_count > 0) {
+          const pct = Math.round((status.exported_count / status.total_count) * 100);
+          return `Exporting: ${status.exported_count}/${status.total_count} (${pct}%)`;
         }
         return 'Exporting filings...';
       case 'complete':
         return 'Sync complete';
+      case 'waiting':
+        return 'Waiting for next sync';
       case 'error':
         return 'Error';
       default:
-        return phase;
-    }
-  }
-
-  function getNextSyncLabel(): string {
-    if (!status?.running) return '';
-    if (isActivelySyncing()) return 'syncing now';
-    if (secondsRemaining === null) return 'starting soon';
-    return formatDuration(secondsRemaining);
-  }
-
-  function getNextSyncTooltip(): string {
-    if (!nextSyncTimestamp) return '';
-    return nextSyncTimestamp.toLocaleString();
-  }
-
-  function formatDateTime(isoString: string): string {
-    const date = new Date(isoString);
-    return date.toLocaleString();
-  }
-
-  function syncStatusBadge(syncStatus: string): string {
-    switch (syncStatus) {
-      case 'completed':
-        return 'badge-success';
-      case 'running':
-        return 'badge-info';
-      case 'failed':
-        return 'badge-danger';
-      default:
-        return 'badge-secondary';
+        return status.phase;
     }
   }
 </script>
@@ -192,41 +163,43 @@
 <section class="rss-section">
   <h2>RSS Feed Watcher</h2>
 
-  {#if status === null}
+  {#if status === null || config === null}
     <p>Loading...</p>
-  {:else if status.running}
-    <div class="status-card enabled">
+  {:else}
+    <div class="status-card" class:enabled={config.enabled} class:disabled={!config.enabled}>
       <div class="status-header">
-        <span class="status-badge running">Running</span>
-        <span class="status-indicator">
-          {#if isActivelySyncing()}
-            <span class="pulse"></span> Syncing
-          {:else}
-            Next sync: <strong class="countdown" title={getNextSyncTooltip()}
-              >{getNextSyncLabel()}</strong
-            >
-          {/if}
-        </span>
+        {#if config.enabled}
+          <span class="status-badge running">Enabled</span>
+          <span class="status-indicator">
+            {#if isActivelySyncing()}
+              <span class="pulse"></span> {formatProgress()}
+            {:else if secondsRemaining != null}
+              Next sync: <strong class="countdown">{formatDuration(secondsRemaining)}</strong>
+            {:else}
+              Starting...
+            {/if}
+          </span>
+        {:else}
+          <span class="status-badge disabled-badge">Disabled</span>
+        {/if}
+        <button
+          class="toggle-btn"
+          class:enabled={config.enabled}
+          onclick={toggleEnabled}
+          disabled={saving}
+        >
+          {saving ? '...' : config.enabled ? 'Disable' : 'Enable'}
+        </button>
       </div>
 
-      <div class="config-display">
-        <div class="config-item">
-          <span class="label">Interval:</span>
-          <span class="value">{status.interval_seconds}s</span>
-        </div>
-      </div>
-
-      {#if isActivelySyncing()}
+      {#if config.enabled && isActivelySyncing() && status.total_count > 0}
         <div class="progress-section">
-          <div class="progress-label">{formatProgress()}</div>
-          {#if status.total_count > 0}
-            <div class="progress-bar">
-              <div
-                class="progress-fill"
-                style="width: {(status.exported_count / status.total_count) * 100}%"
-              ></div>
-            </div>
-          {/if}
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              style="width: {(status.exported_count / status.total_count) * 100}%"
+            ></div>
+          </div>
         </div>
       {/if}
 
@@ -236,42 +209,35 @@
           {status.error_message}
         </div>
       {/if}
-    </div>
-  {:else}
-    <div class="status-card disabled">
-      <p>RSS watcher is not running.</p>
-      <p class="hint">
-        To enable, add <code>rss-sync-interval-seconds</code> to your datasette.yaml plugin config:
-      </p>
-      <pre>plugins:
-  datasette-libfec:
-    rss-sync-interval-seconds: 60</pre>
-    </div>
-  {/if}
 
-  {#if syncs.length > 0}
-    <div class="sync-history">
-      <h3>Recent Syncs</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Status</th>
-            <th>Exported</th>
-            <th>Feed Items</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each syncs as sync}
-            <tr>
-              <td>{formatDateTime(sync.created_at)}</td>
-              <td><span class="badge {syncStatusBadge(sync.status)}">{sync.status}</span></td>
-              <td>{sync.exported_count}</td>
-              <td>{sync.total_feed_items ?? '-'}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+      <div class="config-form">
+        <h3>Settings</h3>
+        <div class="form-grid">
+          <label class="form-label" for="rss-interval">Interval (seconds)</label>
+          <input id="rss-interval" type="number" min="10" bind:value={formIntervalSeconds} />
+
+          <label class="form-label" for="rss-since">Since duration</label>
+          <input id="rss-since" type="text" bind:value={formSinceDuration} placeholder="1 day" />
+
+          <label class="form-label" for="rss-state">State filter</label>
+          <input
+            id="rss-state"
+            type="text"
+            maxlength="2"
+            bind:value={formStateFilter}
+            placeholder="All states"
+          />
+
+          <label class="form-label" for="rss-cover-only">Cover pages only</label>
+          <label class="checkbox-label">
+            <input id="rss-cover-only" type="checkbox" bind:checked={formCoverOnly} />
+            Only import cover pages
+          </label>
+        </div>
+        <button class="save-btn" onclick={saveSettings} disabled={saving}>
+          {saving ? 'Saving...' : 'Save Settings'}
+        </button>
+      </div>
     </div>
   {/if}
 </section>
@@ -280,74 +246,50 @@
   .rss-section {
     flex: 1;
   }
-
   .status-card {
     padding: 1.5em;
     border-radius: 8px;
     margin-bottom: 1.5em;
   }
-
   .status-card.enabled {
     background: #d4edda;
     border: 1px solid #c3e6cb;
   }
-
   .status-card.disabled {
     background: #f8f9fa;
     border: 1px solid #dee2e6;
   }
-
-  .status-card.disabled .hint {
-    color: #666;
-    font-size: 0.9em;
-    margin-top: 1em;
-  }
-
-  .status-card.disabled pre {
-    background: #e9ecef;
-    padding: 1em;
-    border-radius: 4px;
-    font-size: 0.85em;
-    overflow-x: auto;
-  }
-
-  .status-card.disabled code {
-    background: #e9ecef;
-    padding: 0.1em 0.3em;
-    border-radius: 3px;
-  }
-
   .status-header {
     display: flex;
     align-items: center;
     gap: 1em;
     margin-bottom: 1em;
   }
-
   .status-badge {
     padding: 0.25em 0.75em;
     border-radius: 4px;
     font-weight: 600;
     font-size: 0.9em;
   }
-
   .status-badge.running {
     background: #28a745;
     color: white;
   }
-
+  .status-badge.disabled-badge {
+    background: #6c757d;
+    color: white;
+  }
   .status-indicator {
     font-size: 0.95em;
     display: flex;
     align-items: center;
     gap: 0.5em;
+    flex: 1;
   }
-
   .countdown {
     cursor: help;
     border-bottom: 1px dotted currentColor;
   }
-
   .pulse {
     width: 8px;
     height: 8px;
@@ -355,7 +297,6 @@
     border-radius: 50%;
     animation: pulse 1.5s infinite;
   }
-
   @keyframes pulse {
     0%,
     100% {
@@ -367,55 +308,42 @@
       transform: scale(1.2);
     }
   }
-
-  .config-display {
-    display: flex;
-    gap: 2em;
-    padding: 0.75em 1em;
-    background: white;
+  .toggle-btn {
+    margin-left: auto;
+    padding: 0.4em 1em;
+    border: 1px solid #ccc;
     border-radius: 4px;
-    margin-bottom: 1em;
+    cursor: pointer;
     font-size: 0.9em;
+    background: white;
   }
-
-  .config-item {
-    display: flex;
-    gap: 0.5em;
+  .toggle-btn.enabled {
+    border-color: #dc3545;
+    color: #dc3545;
   }
-
-  .config-item .label {
-    color: #666;
+  .toggle-btn:not(.enabled) {
+    border-color: #28a745;
+    color: #28a745;
   }
-
-  .config-item .value {
-    font-weight: 600;
+  .toggle-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
-
   .progress-section {
-    padding: 1em;
-    background: white;
-    border-radius: 4px;
+    padding: 0.5em 0;
     margin-bottom: 1em;
   }
-
-  .progress-label {
-    font-size: 0.9em;
-    margin-bottom: 0.5em;
-  }
-
   .progress-bar {
     height: 20px;
     background: #e9ecef;
     border-radius: 10px;
     overflow: hidden;
   }
-
   .progress-fill {
     height: 100%;
     background: linear-gradient(90deg, #28a745, #20c997);
     transition: width 0.3s ease;
   }
-
   .error-box {
     padding: 0.75em 1em;
     background: #f8d7da;
@@ -425,58 +353,52 @@
     margin-bottom: 1em;
     font-size: 0.9em;
   }
-
-  .sync-history {
-    margin-top: 2em;
+  .config-form {
+    margin-top: 1em;
+    padding: 1em;
+    background: white;
+    border-radius: 4px;
   }
-
-  .sync-history h3 {
-    margin-bottom: 0.75em;
-    font-size: 1.1em;
+  .config-form h3 {
+    margin: 0 0 0.75em;
+    font-size: 1em;
   }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
+  .form-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5em 1em;
+    align-items: center;
+    margin-bottom: 1em;
+  }
+  .form-label {
+    font-size: 0.9em;
+    color: #333;
+  }
+  .form-grid input[type='number'],
+  .form-grid input[type='text'] {
+    padding: 0.35em 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9em;
+    max-width: 200px;
+  }
+  .checkbox-label {
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+  }
+  .save-btn {
+    padding: 0.4em 1.2em;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
     font-size: 0.9em;
   }
-
-  th,
-  td {
-    padding: 0.5em 0.75em;
-    text-align: left;
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  th {
-    background: #f8f9fa;
-    font-weight: 600;
-  }
-
-  .badge {
-    padding: 0.2em 0.5em;
-    border-radius: 3px;
-    font-size: 0.85em;
-    font-weight: 500;
-  }
-
-  .badge-success {
-    background: #d4edda;
-    color: #155724;
-  }
-
-  .badge-info {
-    background: #cce5ff;
-    color: #004085;
-  }
-
-  .badge-danger {
-    background: #f8d7da;
-    color: #721c24;
-  }
-
-  .badge-secondary {
-    background: #e9ecef;
-    color: #495057;
+  .save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 </style>
