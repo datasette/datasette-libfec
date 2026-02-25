@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import createClient from 'openapi-fetch';
   import type { paths } from '../../api.d.ts';
+  import { databaseName as databaseNameStore, basePath as basePathStore } from '../stores';
 
   interface ExportRecord {
     export_id: number;
@@ -40,6 +42,8 @@
     message?: string;
   }
 
+  const basePath = get(basePathStore);
+  const dbName = get(databaseNameStore);
   const client = createClient<paths>({ baseUrl: '/' });
 
   let exports = $state<ExportRecord[]>([]);
@@ -56,7 +60,9 @@
     loading = true;
     error = null;
     try {
-      const { data, error: fetchError } = await client.GET('/-/api/libfec/exports');
+      const { data, error: fetchError } = await client.GET('/{database}/-/api/libfec/exports', {
+        params: { path: { database: dbName } },
+      });
       if (fetchError) {
         error = 'Failed to load exports';
       } else if (data) {
@@ -72,8 +78,8 @@
   async function loadExportDetail(exportId: number) {
     loadingDetail = true;
     try {
-      const { data } = await client.GET(`/-/api/libfec/exports/{export_id}`, {
-        params: { path: { export_id: exportId.toString() } },
+      const { data } = await client.GET('/{database}/-/api/libfec/exports/{export_id}', {
+        params: { path: { database: dbName, export_id: exportId.toString() } },
       });
       if (data) {
         const response = data as unknown as ExportDetail;
@@ -218,11 +224,11 @@
                   <span class="input-type">{input.input_type}</span>
                   <code class="input-value">
                     {#if input.input_type === 'committee'}
-                      <a href={`/-/libfec/committee/${input.input_value}`}>{input.input_value}</a>
+                      <a href={`${basePath}/committee/${input.input_value}`}>{input.input_value}</a>
                     {:else if input.input_type === 'committee_cycle'}
-                      <a href={`/-/libfec/committee/${input.input_value}`}>{input.input_value}</a>
+                      <a href={`${basePath}/committee/${input.input_value}`}>{input.input_value}</a>
                     {:else if input.input_type === 'committee_filing'}
-                      <a href={`/-/libfec/filing/${input.input_value}`}>{input.input_value}</a>
+                      <a href={`${basePath}/filing/${input.input_value}`}>{input.input_value}</a>
                     {:else}
                       {input.input_value}
                     {/if}
@@ -248,7 +254,7 @@
               <ul class="filings-list">
                 {#each selectedExport.filings as filing}
                   <li class:success={filing.success} class:failure={!filing.success}>
-                    <a href="/-/libfec/filing/{filing.filing_id}" target="_blank">
+                    <a href="{basePath}/filing/{filing.filing_id}" target="_blank">
                       {filing.filing_id}
                     </a>
                     {#if filing.message}

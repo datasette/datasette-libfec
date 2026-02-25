@@ -1,9 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import createClient from 'openapi-fetch';
   import type { paths } from '../../api.d.ts';
+  import { databaseName, basePath } from '../stores';
   import SearchMultiSelect, { type SelectedItem } from '../components/SearchMultiSelect.svelte';
 
+  const bp = get(basePath);
+  const dbName = get(databaseName);
   const client = createClient<paths>({ baseUrl: '/' });
 
   interface ExportStatus {
@@ -89,7 +93,9 @@
 
   async function loadExportStatus() {
     try {
-      const { data, error } = await client.GET('/-/api/libfec/export/status');
+      const { data, error } = await client.GET('/{database}/-/api/libfec/export/status', {
+        params: { path: { database: dbName } },
+      });
       if (data && !error) {
         const status = data as unknown as ExportStatus;
         exportStatus = status;
@@ -103,7 +109,7 @@
         // Redirect to export detail page when our export completes
         if (waitingForExport && status.phase === 'complete' && status.db_export_id) {
           waitingForExport = false;
-          window.location.href = `/-/libfec/exports/${status.db_export_id}`;
+          window.location.href = `${bp}/exports/${status.db_export_id}`;
         }
       }
     } catch (error) {
@@ -184,7 +190,8 @@
 
     isLoading = true;
     try {
-      const { error } = await client.POST('/-/api/libfec/export/start', {
+      const { error } = await client.POST('/{database}/-/api/libfec/export/start', {
+        params: { path: { database: dbName } },
         body: {
           filings: filingIds,
           cycle: cycle,
@@ -213,7 +220,9 @@
   async function cancelExport() {
     isLoading = true;
     try {
-      const { error } = await client.POST('/-/api/libfec/export/cancel', {});
+      const { error } = await client.POST('/{database}/-/api/libfec/export/cancel', {
+        params: { path: { database: dbName } },
+      });
       if (error) {
         alert(`Error canceling export: ${JSON.stringify(error)}`);
         return;

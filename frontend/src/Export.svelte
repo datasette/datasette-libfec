@@ -1,5 +1,7 @@
 <script lang="ts">
   import { loadPageData } from './page_data/load.ts';
+  import { get } from 'svelte/store';
+  import { databaseName as databaseNameStore, basePath as basePathStore } from './stores';
   import Breadcrumb from './components/Breadcrumb.svelte';
 
   interface ExportFilingInfo {
@@ -36,6 +38,8 @@
   }
 
   const pageData = loadPageData<ExportPageData>();
+  databaseNameStore.set(pageData.database_name);
+  const basePath = get(basePathStore);
 
   function formatDate(dateStr: string | null): string {
     if (!dateStr) return '-';
@@ -77,11 +81,11 @@
     switch (input.input_type) {
       case 'committee':
       case 'committee_cycle':
-        return `/-/libfec/committee/${input.input_value}`;
+        return `${basePath}/committee/${input.input_value}`;
       case 'committee_filing':
-        return `/-/libfec/filing/${input.input_value}`;
+        return `${basePath}/filing/${input.input_value}`;
       case 'candidate':
-        return `/-/libfec/candidate/${input.input_value}`;
+        return `${basePath}/candidate/${input.input_value}`;
       default:
         return null;
     }
@@ -90,7 +94,7 @@
 
 <div class="export-detail">
   <Breadcrumb
-    items={[{ label: 'FEC Data', href: '/-/libfec' }, { label: `Export #${pageData.export_id}` }]}
+    items={[{ label: 'FEC Data', href: basePath }, { label: `Export #${pageData.export_id}` }]}
   />
 
   <header>
@@ -172,14 +176,14 @@
             {#each pageData.filings as filing}
               <tr class:success={filing.success} class:failure={!filing.success}>
                 <td>
-                  <a href="/-/libfec/filing/{filing.filing_id}">
+                  <a href="{basePath}/filing/{filing.filing_id}">
                     {filing.filing_id}
                   </a>
                 </td>
                 <td>{filing.cover_record_form ?? '-'}</td>
                 <td>
                   {#if filing.filer_id}
-                    <a href="/-/libfec/committee/{filing.filer_id}">
+                    <a href="{basePath}/committee/{filing.filer_id}">
                       {filing.filer_name ?? filing.filer_id}
                     </a>
                   {:else}

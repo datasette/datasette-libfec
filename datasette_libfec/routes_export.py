@@ -5,7 +5,6 @@ from typing import Optional, List
 import asyncio
 import uuid
 
-from .database import get_libfec_database
 from .router import router, check_permission, check_write_permission
 from .state import libfec_client, export_state
 
@@ -24,9 +23,11 @@ class ExportResponse(BaseModel):
     phase: Optional[str] = None
 
 
-@router.POST("/-/api/libfec/export/start", output=ExportResponse)
+@router.POST("/(?P<database>[^/]+)/-/api/libfec/export/start", output=ExportResponse)
 @check_write_permission()
-async def export_start(datasette, request, params: Body[ExportStartParams]):
+async def export_start(
+    datasette, request, database: str, params: Body[ExportStartParams]
+):
     if export_state.running:
         return Response.json(
             {
@@ -38,7 +39,7 @@ async def export_start(datasette, request, params: Body[ExportStartParams]):
         )
 
     # Get output database
-    output_db = get_libfec_database(datasette)
+    output_db = datasette.databases[database]
 
     # Start export in background task
     async def run_export():
@@ -67,9 +68,9 @@ async def export_start(datasette, request, params: Body[ExportStartParams]):
     )
 
 
-@router.GET("/-/api/libfec/export/status", output=ExportResponse)
+@router.GET("/(?P<database>[^/]+)/-/api/libfec/export/status", output=ExportResponse)
 @check_permission()
-async def export_status(datasette, request):
+async def export_status(datasette, request, database: str):
     response_data = {
         "status": "success",
         "message": "Export status",
@@ -93,7 +94,7 @@ async def export_status(datasette, request):
 
         # Get the database export_id for redirect
         try:
-            db = get_libfec_database(datasette)
+            db = datasette.databases[database]
             result = await db.execute(
                 "SELECT export_id FROM libfec_exports ORDER BY export_id DESC LIMIT 1"
             )
@@ -109,9 +110,9 @@ async def export_status(datasette, request):
     return Response.json(response_data)
 
 
-@router.POST("/-/api/libfec/export/cancel", output=ExportResponse)
+@router.POST("/(?P<database>[^/]+)/-/api/libfec/export/cancel", output=ExportResponse)
 @check_write_permission()
-async def export_cancel(datasette, request):
+async def export_cancel(datasette, request, database: str):
     if not export_state.running:
         return Response.json(
             {"status": "error", "message": "No export in progress"}, status=400

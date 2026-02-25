@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { FilingDetailPageData } from './page_data/FilingDetailPageData.types.ts';
   import { loadPageData } from './page_data/load.ts';
-  import { databaseName as databaseNameStore } from './stores';
+  import { get } from 'svelte/store';
+  import { databaseName as databaseNameStore, basePath as basePathStore } from './stores';
   import F1 from './forms/F1.svelte';
   import F1S from './forms/F1S.svelte';
   import F2 from './forms/F2.svelte';
@@ -23,20 +24,21 @@
   const filingId = pageData.filing_id;
   const databaseName = pageData.database_name;
 
-  // Set the store for child components to use
+  // Set the stores for child components to use
   databaseNameStore.set(databaseName);
+  const basePath = get(basePathStore);
 
   // Determine report type for conditional rendering
   const reportType = filingData?.cover_record_form || 'Unknown';
 
   // Build breadcrumb items
   function getBreadcrumbItems(): BreadcrumbItem[] {
-    const items: BreadcrumbItem[] = [{ label: 'FEC Data', href: '/-/libfec' }];
+    const items: BreadcrumbItem[] = [{ label: 'FEC Data', href: basePath }];
 
     if (filingData?.filer_id) {
       items.push({
         label: filingData.filer_name || filingData.filer_id,
-        href: `/-/libfec/committee/${filingData.filer_id}`,
+        href: `${basePath}/committee/${filingData.filer_id}`,
       });
     }
 
@@ -55,7 +57,7 @@
       <div class="filer-info">
         <span class="filer-name">
           {#if filingData.filer_id}
-            <a href="/-/libfec/committee/{filingData.filer_id}">
+            <a href="{basePath}/committee/{filingData.filer_id}">
               {filingData.filer_name}
             </a>
           {:else}

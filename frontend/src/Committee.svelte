@@ -1,9 +1,13 @@
 <script lang="ts">
   import type { CommitteePageData } from './page_data/CommitteePageData.types.ts';
   import { loadPageData } from './page_data/load.ts';
+  import { get } from 'svelte/store';
+  import { databaseName as databaseNameStore, basePath as basePathStore } from './stores';
   import Breadcrumb, { type BreadcrumbItem } from './components/Breadcrumb.svelte';
 
   const pageData = loadPageData<CommitteePageData>();
+  databaseNameStore.set(pageData.database_name);
+  const basePath = get(basePathStore);
 
   const officeNames: Record<string, string> = {
     H: 'House',
@@ -41,7 +45,7 @@
 
   // Build breadcrumb items
   function getBreadcrumbItems(): BreadcrumbItem[] {
-    const items: BreadcrumbItem[] = [{ label: 'FEC Data', href: '/-/libfec' }];
+    const items: BreadcrumbItem[] = [{ label: 'FEC Data', href: basePath }];
 
     const cand = pageData.candidate;
     if (cand?.office && cand?.state) {
@@ -58,11 +62,11 @@
         contestParams.set('district', cand.district.toString());
       }
 
-      items.push({ label: contestLabel, href: `/-/libfec/contest?${contestParams.toString()}` });
+      items.push({ label: contestLabel, href: `${basePath}/contest?${contestParams.toString()}` });
 
       items.push({
         label: cand.name || 'Candidate',
-        href: `/-/libfec/candidate/${cand.candidate_id}?cycle=${pageData.cycle}`,
+        href: `${basePath}/candidate/${cand.candidate_id}?cycle=${pageData.cycle}`,
       });
     }
 
@@ -98,7 +102,7 @@
     {#if isPrincipal}
       <p class="subtitle">
         Principal campaign committee for
-        <a href="/-/libfec/candidate/{pageData.candidate?.candidate_id}?cycle={pageData.cycle}">
+        <a href="${basePath}/candidate/{pageData.candidate?.candidate_id}?cycle={pageData.cycle}">
           {pageData.candidate?.name}
         </a>
       </p>
@@ -135,7 +139,7 @@
           {#each pageData.filings as filing}
             <tr>
               <td>
-                <a href="/-/libfec/filing/{filing.filing_id}">
+                <a href="${basePath}/filing/{filing.filing_id}">
                   FEC-{filing.filing_id}
                 </a>
               </td>

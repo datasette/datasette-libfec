@@ -1,7 +1,10 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import createClient from 'openapi-fetch';
   import type { paths } from '../../api.d.ts';
+  import { databaseName } from '../stores';
 
+  const dbName = get(databaseName);
   const client = createClient<paths>({ baseUrl: '/' });
 
   interface SearchResult {
@@ -114,7 +117,8 @@
 
     searchLoading = true;
     try {
-      const { data, error } = await client.POST('/-/api/libfec/search', {
+      const { data, error } = await client.POST('/{database}/-/api/libfec/search', {
+        params: { path: { database: dbName } },
         body: {
           query: searchQuery,
           cycle: cycle,

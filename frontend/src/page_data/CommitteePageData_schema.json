@@ -469,6 +469,10 @@
       "title": "Cycle",
       "type": "integer"
     },
+    "database_name": {
+      "title": "Database Name",
+      "type": "string"
+    },
     "committee": {
       "anyOf": [
         {
@@ -514,7 +518,8 @@
   },
   "required": [
     "committee_id",
-    "cycle"
+    "cycle",
+    "database_name"
   ],
   "title": "CommitteePageData",
   "type": "object"

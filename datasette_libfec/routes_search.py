@@ -26,9 +26,9 @@ class SearchResponse(BaseModel):
     committees: List[dict]
 
 
-@router.POST("/-/api/libfec/search", output=SearchResponse)
+@router.POST("/(?P<database>[^/]+)/-/api/libfec/search", output=SearchResponse)
 @check_permission()
-async def search(datasette, request, params: Body[SearchParams]):
+async def search(datasette, request, database: str, params: Body[SearchParams]):
     """Search for candidates and committees using libfec search --rpc"""
     from .libfec_search_rpc_client import LibfecSearchRpcClient, RpcError
 

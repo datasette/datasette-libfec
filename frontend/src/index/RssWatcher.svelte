@@ -1,8 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import createClient from 'openapi-fetch';
   import type { paths } from '../../api.d.ts';
+  import { databaseName as databaseNameStore } from '../stores';
 
+  const dbName = get(databaseNameStore);
   const client = createClient<paths>({ baseUrl: '/' });
 
   interface RssStatus {
@@ -79,7 +82,9 @@
 
   async function loadStatus() {
     try {
-      const { data, error } = await client.GET('/-/api/libfec/rss/status');
+      const { data, error } = await client.GET('/{database}/-/api/libfec/rss/status', {
+        params: { path: { database: dbName } },
+      });
       if (data && !error) {
         status = data as unknown as RssStatus;
 
@@ -101,7 +106,9 @@
 
   async function loadSyncs() {
     try {
-      const { data, error } = await client.GET('/-/api/libfec/rss/syncs');
+      const { data, error } = await client.GET('/{database}/-/api/libfec/rss/syncs', {
+        params: { path: { database: dbName } },
+      });
       if (data && !error) {
         syncs = (data as any).syncs || [];
       }

@@ -243,6 +243,10 @@
       "title": "Cycle",
       "type": "integer"
     },
+    "database_name": {
+      "title": "Database Name",
+      "type": "string"
+    },
     "contest_description": {
       "title": "Contest Description",
       "type": "string"
@@ -272,6 +276,7 @@
     "state",
     "office",
     "cycle",
+    "database_name",
     "contest_description"
   ],
   "title": "ContestPageData",

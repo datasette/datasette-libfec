@@ -1,12 +1,15 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { query } from '../api';
   import { useQuery } from '../useQuery.svelte';
+  import { basePath as basePathStore } from '../stores';
 
   interface Props {
     databaseName: string;
   }
 
   let { databaseName }: Props = $props();
+  const basePath = get(basePathStore);
 
   interface Filing {
     filing_id: string;
@@ -81,7 +84,7 @@
           {#each filings as filing}
             <tr
               class="filing-row"
-              onclick={() => (window.location.href = `/-/libfec/filing/${filing.filing_id}`)}
+              onclick={() => (window.location.href = `${basePath}/filing/${filing.filing_id}`)}
             >
               <td class="filing-id">{filing.filing_id}</td>
               <td>{filing.filer_name}</td>

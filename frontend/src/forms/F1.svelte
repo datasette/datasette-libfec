@@ -1,4 +1,9 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
+  import { basePath } from '../stores';
+
+  const bp = get(basePath);
+
   interface Props {
     formData: any;
     filingId: string;
@@ -20,7 +25,7 @@
         <dt>Committee ID:</dt>
         <dd>
           {#if formData.filer_committee_id_number}
-            <a href="/-/libfec/committee/{formData.filer_committee_id_number}">
+            <a href="{bp}/committee/{formData.filer_committee_id_number}">
               {formData.filer_committee_id_number}
             </a>
           {:else}
@@ -75,7 +80,7 @@
           {#if formData.candidate_id_number}
             <dt>Candidate ID:</dt>
             <dd>
-              <a href="/-/libfec/candidate/{formData.candidate_id_number}">
+              <a href="{bp}/candidate/{formData.candidate_id_number}">
                 {formData.candidate_id_number}
               </a>
             </dd>
@@ -85,7 +90,7 @@
             <dt>Contest:</dt>
             <dd>
               <a
-                href="/-/libfec/contest?state={formData.candidate_state}&office={formData.candidate_office}{formData.candidate_district
+                href="{bp}/contest?state={formData.candidate_state}&office={formData.candidate_office}{formData.candidate_district
                   ? '&district=' + formData.candidate_district
                   : ''}"
               >

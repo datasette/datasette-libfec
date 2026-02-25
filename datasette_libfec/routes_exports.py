@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from datasette import Response
 from typing import Optional, List, Literal
 
-from .database import get_libfec_database
 from .router import router, check_permission
 
 
@@ -45,11 +44,11 @@ class ApiExportsListResponse(BaseModel):
     message: Optional[str] = None
 
 
-@router.GET("/-/api/libfec/exports$", output=ApiExportsListResponse)
+@router.GET("/(?P<database>[^/]+)/-/api/libfec/exports$", output=ApiExportsListResponse)
 @check_permission()
-async def list_exports(datasette, request):
+async def list_exports(datasette, request, database: str):
     """List all export operations from the metadata tables"""
-    db = get_libfec_database(datasette)
+    db = datasette.databases[database]
 
     # Check if the table exists
     try:
@@ -104,11 +103,11 @@ async def list_exports(datasette, request):
         )
 
 
-@router.GET("/-/api/libfec/exports/(?P<export_id>\\d+)")
+@router.GET("/(?P<database>[^/]+)/-/api/libfec/exports/(?P<export_id>\\d+)")
 @check_permission()
-async def get_export_detail(datasette, request, export_id: str):
+async def get_export_detail(datasette, request, database: str, export_id: str):
     """Get detailed information about a specific export"""
-    db = get_libfec_database(datasette)
+    db = datasette.databases[database]
     export_id_int = int(export_id)
 
     try:

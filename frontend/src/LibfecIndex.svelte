@@ -1,9 +1,13 @@
 <script lang="ts">
   import type { IndexPageData } from './page_data/IndexPageData.types.ts';
   import { loadPageData } from './page_data/load.ts';
+  import { get } from 'svelte/store';
+  import { databaseName as databaseNameStore, basePath } from './stores';
   import RecentFilings from './components/RecentFilings.svelte';
 
   const pageData = loadPageData<IndexPageData>();
+  databaseNameStore.set(pageData.database_name);
+  const bp = get(basePath);
 </script>
 
 <main>
@@ -11,7 +15,7 @@
   <p>Federal Election Commission data explorer.</p>
 
   <div class="nav-cards">
-    <a href="/-/libfec/filing-day" class="nav-card">
+    <a href="{bp}/filing-day" class="nav-card">
       <h2>Filing Day</h2>
       <p>Compare F3 reports from candidates for a specific reporting period.</p>
     </a>
@@ -19,11 +23,11 @@
 
   {#if pageData.can_write}
     <div class="nav-cards">
-      <a href="/-/libfec/import" class="nav-card">
+      <a href="{bp}/import" class="nav-card">
         <h2>Import Data</h2>
         <p>Import FEC filings for candidates, committees, or contests.</p>
       </a>
-      <a href="/-/libfec/rss" class="nav-card">
+      <a href="{bp}/rss" class="nav-card">
         <h2>RSS Watcher</h2>
         <p>Automatically watch and import new filings from the FEC RSS feed.</p>
       </a>

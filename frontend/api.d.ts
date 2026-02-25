@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/-/api/libfec/rss/status": {
+    "/{database}/-/api/libfec/rss/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -15,7 +15,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    database: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -37,7 +39,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/api/libfec/rss/syncs": {
+    "/{database}/-/api/libfec/rss/syncs": {
         parameters: {
             query?: never;
             header?: never;
@@ -48,7 +50,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    database: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -70,7 +74,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/api/libfec/export/start": {
+    "/{database}/-/api/libfec/export/start": {
         parameters: {
             query?: never;
             header?: never;
@@ -83,7 +87,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    database: string;
+                };
                 cookie?: never;
             };
             requestBody: {
@@ -145,7 +151,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/api/libfec/export/status": {
+    "/{database}/-/api/libfec/export/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -156,7 +162,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    database: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -195,7 +203,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/api/libfec/export/cancel": {
+    "/{database}/-/api/libfec/export/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -208,7 +216,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    database: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -245,7 +255,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/api/libfec/search": {
+    "/{database}/-/api/libfec/search": {
         parameters: {
             query?: never;
             header?: never;
@@ -258,7 +268,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    database: string;
+                };
                 cookie?: never;
             };
             requestBody: {
@@ -316,7 +328,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/api/libfec/exports": {
+    "/{database}/-/api/libfec/exports": {
         parameters: {
             query?: never;
             header?: never;
@@ -327,7 +339,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    database: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -364,7 +378,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/api/libfec/exports/{export_id}": {
+    "/{database}/-/api/libfec/exports/{export_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -376,6 +390,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    database: string;
                     export_id: string;
                 };
                 cookie?: never;
@@ -399,106 +414,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/libfec": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/-/libfec/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/-/libfec/rss": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/-/libfec/filing/{filing_id}": {
+    "/{database}/-/libfec": {
         parameters: {
             query?: never;
             header?: never;
@@ -510,6 +426,112 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    database: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{database}/-/libfec/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    database: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{database}/-/libfec/rss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    database: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{database}/-/libfec/filing/{filing_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    database: string;
                     filing_id: string;
                 };
                 cookie?: never;
@@ -533,7 +555,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/libfec/contest": {
+    "/{database}/-/libfec/contest": {
         parameters: {
             query?: never;
             header?: never;
@@ -544,7 +566,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    database: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -566,7 +590,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/libfec/candidate/{candidate_id}": {
+    "/{database}/-/libfec/candidate/{candidate_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -578,6 +602,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    database: string;
                     candidate_id: string;
                 };
                 cookie?: never;
@@ -601,7 +626,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/libfec/exports/{export_id}": {
+    "/{database}/-/libfec/exports/{export_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -613,6 +638,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    database: string;
                     export_id: string;
                 };
                 cookie?: never;
@@ -636,7 +662,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/libfec/committee/{committee_id}": {
+    "/{database}/-/libfec/committee/{committee_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -648,6 +674,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    database: string;
                     committee_id: string;
                 };
                 cookie?: never;
@@ -671,7 +698,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/-/libfec/filing-day": {
+    "/{database}/-/libfec/filing-day": {
         parameters: {
             query?: never;
             header?: never;
@@ -682,7 +709,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    database: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;

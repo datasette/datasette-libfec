@@ -1,9 +1,13 @@
 <script lang="ts">
   import type { ContestPageData, Candidate } from './page_data/ContestPageData.types.ts';
   import { loadPageData } from './page_data/load.ts';
+  import { get } from 'svelte/store';
+  import { databaseName as databaseNameStore, basePath as basePathStore } from './stores';
   import Breadcrumb from './components/Breadcrumb.svelte';
 
   const pageData = loadPageData<ContestPageData>();
+  databaseNameStore.set(pageData.database_name);
+  const basePath = get(basePathStore);
 
   const officeNames: Record<string, string> = {
     H: 'House',
@@ -22,9 +26,9 @@
 
   function getCandidateUrl(candidate: Candidate): string {
     if (candidate.principal_campaign_committee) {
-      return `/-/libfec/committee/${candidate.principal_campaign_committee}?cycle=${pageData.cycle}`;
+      return `${basePath}/committee/${candidate.principal_campaign_committee}?cycle=${pageData.cycle}`;
     }
-    return `/-/libfec/candidate/${candidate.candidate_id}?cycle=${pageData.cycle}`;
+    return `${basePath}/candidate/${candidate.candidate_id}?cycle=${pageData.cycle}`;
   }
 
   // Sort: incumbents first, then by cash on hand descending
@@ -38,7 +42,7 @@
 
 <div class="contest-page">
   <div class="header">
-    <Breadcrumb items={[{ label: 'FEC Data', href: '/-/libfec' }, { label: 'Contest' }]} />
+    <Breadcrumb items={[{ label: 'FEC Data', href: basePath }, { label: 'Contest' }]} />
     <h1>{pageData.contest_description}</h1>
     <div class="meta">
       <span class="cycle">{pageData.cycle} Election Cycle</span>

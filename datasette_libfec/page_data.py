@@ -52,6 +52,7 @@ class Filing(BaseModel):
 class CandidatePageData(BaseModel):
     candidate_id: str
     cycle: int
+    database_name: str
     candidate: Candidate | None = None
     committee: Committee | None = None
     filings: list[Filing] = []
@@ -61,6 +62,7 @@ class CandidatePageData(BaseModel):
 class CommitteePageData(BaseModel):
     committee_id: str
     cycle: int
+    database_name: str
     committee: Committee | None = None
     candidate: Candidate | None = None
     filings: list[Filing] = []
@@ -72,6 +74,7 @@ class ContestPageData(BaseModel):
     office: str
     district: str | None = None
     cycle: int
+    database_name: str
     contest_description: str
     candidates: list[Candidate] = []
     error: str | None = None

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { get } from 'svelte/store';
-  import { databaseName } from '../../stores';
+  import { databaseName, basePath as basePathStore } from '../../stores';
   import { query } from '../../api';
   import { useQuery } from '../../useQuery.svelte';
 
@@ -37,6 +37,7 @@
   let { filingId, filerId, reportCode, coverageThroughDate }: Props = $props();
 
   const dbName = get(databaseName);
+  const bp = get(basePathStore);
 
   // First query to get the current candidate's race info
   async function fetchRaceInfo(): Promise<RaceInfo | null> {
@@ -136,7 +137,7 @@
     if (raceInfo.district) {
       params.set('district', raceInfo.district);
     }
-    return `/-/libfec/contest?${params}`;
+    return `${bp}/contest?${params}`;
   }
 </script>
 
@@ -173,7 +174,7 @@
                   <span class="current-marker">★</span>
                   {report.candidate_name}
                 {:else}
-                  <a href="/-/libfec/filing/{report.filing_id}">{report.candidate_name}</a>
+                  <a href="{bp}/filing/{report.filing_id}">{report.candidate_name}</a>
                 {/if}
               </td>
               <td class="committee">{report.filer_name}</td>

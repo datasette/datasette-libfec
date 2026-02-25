@@ -1,5 +1,6 @@
 <script lang="ts">
   import { loadPageData } from '../page_data/load.ts';
+  import { get } from 'svelte/store';
   import { query } from '../api.ts';
   import { useQuery } from '../useQuery.svelte.ts';
   import { getReportLabel } from '../utils/reportCodes.ts';
@@ -7,6 +8,7 @@
   import { AVAILABLE_COLUMNS, DEFAULT_COLUMNS, getColumnsById, type ColumnDef } from './columns.ts';
   import ColumnSelector from './ColumnSelector.svelte';
   import Breadcrumb from '../components/Breadcrumb.svelte';
+  import { databaseName as databaseNameStore, basePath as basePathStore } from '../stores';
 
   interface FilingDayPageData {
     database_name: string;
@@ -26,6 +28,8 @@
   }
 
   const pageData = loadPageData<FilingDayPageData>();
+  databaseNameStore.set(pageData.database_name);
+  const bp = get(basePathStore);
 
   // Common report codes for F3 filings
   const reportCodes = [
@@ -305,9 +309,9 @@ SELECT * FROM final
 
   function getCandidateUrl(report: FilingReport): string {
     if (report.principal_campaign_committee) {
-      return `/-/libfec/committee/${report.principal_campaign_committee}`;
+      return `${bp}/committee/${report.principal_campaign_committee}`;
     }
-    return `/-/libfec/candidate/${report.candidate_id}`;
+    return `${bp}/candidate/${report.candidate_id}`;
   }
 
   function getContestUrl(report: FilingReport): string {
@@ -319,7 +323,7 @@ SELECT * FROM final
     const yearNum = parseInt(year, 10);
     const cycle = yearNum % 2 === 1 ? yearNum + 1 : yearNum;
     params.set('cycle', String(cycle));
-    return `/-/libfec/contest?${params.toString()}`;
+    return `${bp}/contest?${params.toString()}`;
   }
 
   function getContestLabel(report: FilingReport): string {
@@ -351,7 +355,7 @@ SELECT * FROM final
 
 <div class="filing-day-page">
   <div class="header">
-    <Breadcrumb items={[{ label: 'FEC Data', href: '/-/libfec' }, { label: 'Filing Day' }]} />
+    <Breadcrumb items={[{ label: 'FEC Data', href: bp }, { label: 'Filing Day' }]} />
     <h1>Filing Day</h1>
     <p>Compare how much candidates raised, spent, and have on hand for a given reporting period.</p>
   </div>
@@ -542,7 +546,7 @@ SELECT * FROM final
                     >{formatValue(report[column.id] as number, column)}</td
                   >
                 {/each}
-                <td><a href="/-/libfec/filing/{report.filing_id}">{report.filing_id}</a></td>
+                <td><a href="{bp}/filing/{report.filing_id}">{report.filing_id}</a></td>
               </tr>
             {/each}
           </tbody>

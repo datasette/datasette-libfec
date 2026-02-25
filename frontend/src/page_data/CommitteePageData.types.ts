@@ -7,6 +7,7 @@
 
 export type CommitteeId = string;
 export type Cycle = number;
+export type DatabaseName = string;
 export type CommitteeId1 = string;
 export type Name = string | null;
 export type CommitteeType = string | null;
@@ -51,6 +52,7 @@ export type Error = string | null;
 export interface CommitteePageData {
   committee_id: CommitteeId;
   cycle: Cycle;
+  database_name: DatabaseName;
   committee?: Committee | null;
   candidate?: Candidate | null;
   filings?: Filings;

@@ -113,12 +113,12 @@ def register_actions(datasette):
 
 
 @hookimpl
-def menu_links(datasette, actor):
+def database_actions(datasette, actor, database):
     async def inner():
         if actor and (await datasette.allowed(action=LIBFEC_ACCESS_NAME, actor=actor)):
             return [
                 {
-                    "href": datasette.urls.path("/-/libfec/"),
+                    "href": datasette.urls.path(f"/{database}/-/libfec/"),
                     "label": "FEC Data",
                 }
             ]

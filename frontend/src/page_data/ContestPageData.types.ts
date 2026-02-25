@@ -9,6 +9,7 @@ export type State = string;
 export type Office = string;
 export type District = string | null;
 export type Cycle = number;
+export type DatabaseName = string;
 export type ContestDescription = string;
 export type CandidateId = string;
 export type Name = string | null;
@@ -36,6 +37,7 @@ export interface ContestPageData {
   office: Office;
   district?: District;
   cycle: Cycle;
+  database_name: DatabaseName;
   contest_description: ContestDescription;
   candidates?: Candidates;
   error?: Error;

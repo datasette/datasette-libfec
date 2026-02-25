@@ -1,5 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
+  import { basePath as basePathStore, apiBasePath as apiBasePathStore } from '../stores';
+
+  const bp = get(basePathStore);
+  const apiBp = get(apiBasePathStore);
 
   interface RssSyncRecord {
     sync_id: number;
@@ -60,7 +65,7 @@
     loading = true;
     error = null;
     try {
-      const response = await fetch('/-/api/libfec/rss/syncs');
+      const response = await fetch(`${apiBp}/rss/syncs`);
       const data = await response.json();
       if (typeof data === 'string') {
         const parsed = JSON.parse(data) as RssSyncsListResponse;
@@ -78,7 +83,7 @@
   async function loadSyncDetail(syncId: number) {
     loadingDetail = true;
     try {
-      const response = await fetch(`/-/api/libfec/rss/syncs/${syncId}`);
+      const response = await fetch(`${apiBp}/rss/syncs/${syncId}`);
       const data = (await response.json()) as RssSyncDetail;
       if (data.status === 'success' && data.sync) {
         selectedSync = data;
@@ -270,13 +275,13 @@
                       class:failure={!filing.export_success}
                     >
                       <td>
-                        <a href="/-/libfec/filing/{filing.filing_id}" target="_blank">
+                        <a href="{bp}/filing/{filing.filing_id}" target="_blank">
                           {filing.filing_id}
                         </a>
                       </td>
                       <td>
                         {#if filing.committee_id}
-                          <a href="/-/libfec/committee/{filing.committee_id}" target="_blank">
+                          <a href="{bp}/committee/{filing.committee_id}" target="_blank">
                             {filing.committee_id}
                           </a>
                         {:else}

@@ -4,7 +4,6 @@ Routes for contest, candidate, and committee pages.
 
 from datasette import Response
 
-from .database import get_libfec_database
 from .router import router, check_permission, check_write_permission, LIBFEC_WRITE_NAME
 from .page_data import (
     Candidate,
@@ -24,10 +23,10 @@ from .page_data import (
 )
 
 
-@router.GET("/-/libfec$")
+@router.GET("/(?P<database>[^/]+)/-/libfec$")
 @check_permission()
-async def libfec_page(datasette, request):
-    db = get_libfec_database(datasette)
+async def libfec_page(datasette, request, database: str):
+    db = datasette.databases[database]
     can_write = await datasette.allowed(action=LIBFEC_WRITE_NAME, actor=request.actor)
     page_data = IndexPageData(database_name=db.name, can_write=can_write)
     return Response.html(
@@ -42,10 +41,10 @@ async def libfec_page(datasette, request):
     )
 
 
-@router.GET("/-/libfec/import$")
+@router.GET("/(?P<database>[^/]+)/-/libfec/import$")
 @check_write_permission()
-async def import_page(datasette, request):
-    db = get_libfec_database(datasette)
+async def import_page(datasette, request, database: str):
+    db = datasette.databases[database]
     page_data = ImportPageData(database_name=db.name)
     return Response.html(
         await datasette.render_template(
@@ -59,10 +58,10 @@ async def import_page(datasette, request):
     )
 
 
-@router.GET("/-/libfec/rss$")
+@router.GET("/(?P<database>[^/]+)/-/libfec/rss$")
 @check_write_permission()
-async def rss_page(datasette, request):
-    db = get_libfec_database(datasette)
+async def rss_page(datasette, request, database: str):
+    db = datasette.databases[database]
     page_data = RssPageData(database_name=db.name)
     return Response.html(
         await datasette.render_template(
@@ -76,10 +75,10 @@ async def rss_page(datasette, request):
     )
 
 
-@router.GET("/-/libfec/filing/(?P<filing_id>[^/]+)")
+@router.GET("/(?P<database>[^/]+)/-/libfec/filing/(?P<filing_id>[^/]+)")
 @check_permission()
-async def filing_detail_page(datasette, request, filing_id: str):
-    db = get_libfec_database(datasette)
+async def filing_detail_page(datasette, request, database: str, filing_id: str):
+    db = datasette.databases[database]
     filing = None
     form_data = None
     error = None
@@ -144,9 +143,9 @@ async def filing_detail_page(datasette, request, filing_id: str):
     )
 
 
-@router.GET("/-/libfec/contest$")
+@router.GET("/(?P<database>[^/]+)/-/libfec/contest$")
 @check_permission()
-async def contest_page(datasette, request):
+async def contest_page(datasette, request, database: str):
     """
     Contest page showing candidates for a specific race.
 
@@ -170,7 +169,7 @@ async def contest_page(datasette, request):
     error = None
 
     try:
-        db = get_libfec_database(datasette)
+        db = datasette.databases[database]
 
         if office == "H" and district:
             candidates_result = await db.execute(
@@ -242,6 +241,7 @@ async def contest_page(datasette, request):
         office=office,
         district=district,
         cycle=cycle,
+        database_name=database,
         contest_description=contest_description,
         candidates=candidates,
         error=error,
@@ -258,9 +258,9 @@ async def contest_page(datasette, request):
     )
 
 
-@router.GET("/-/libfec/candidate/(?P<candidate_id>[^/]+)$")
+@router.GET("/(?P<database>[^/]+)/-/libfec/candidate/(?P<candidate_id>[^/]+)$")
 @check_permission()
-async def candidate_page(datasette, request, candidate_id: str):
+async def candidate_page(datasette, request, database: str, candidate_id: str):
     """
     Candidate detail page.
 
@@ -274,7 +274,7 @@ async def candidate_page(datasette, request, candidate_id: str):
     principal_committee_id = None
 
     try:
-        db = get_libfec_database(datasette)
+        db = datasette.databases[database]
 
         # Fetch candidate from database
         candidate_result = await db.execute(
@@ -320,6 +320,7 @@ async def candidate_page(datasette, request, candidate_id: str):
     page_data = CandidatePageData(
         candidate_id=candidate_id,
         cycle=cycle,
+        database_name=database,
         candidate=candidate,
         committee=committee,
         filings=filings,
@@ -338,13 +339,13 @@ async def candidate_page(datasette, request, candidate_id: str):
     )
 
 
-@router.GET("/-/libfec/exports/(?P<export_id>\\d+)$")
+@router.GET("/(?P<database>[^/]+)/-/libfec/exports/(?P<export_id>\\d+)$")
 @check_permission()
-async def export_detail_page(datasette, request, export_id: str):
+async def export_detail_page(datasette, request, database: str, export_id: str):
     """
     Export detail page showing all filings from an export.
     """
-    db = get_libfec_database(datasette)
+    db = datasette.databases[database]
     export_id_int = int(export_id)
 
     export_uuid = None
@@ -478,9 +479,9 @@ async def export_detail_page(datasette, request, export_id: str):
     )
 
 
-@router.GET("/-/libfec/committee/(?P<committee_id>[^/]+)$")
+@router.GET("/(?P<database>[^/]+)/-/libfec/committee/(?P<committee_id>[^/]+)$")
 @check_permission()
-async def committee_page(datasette, request, committee_id: str):
+async def committee_page(datasette, request, database: str, committee_id: str):
     """
     Committee detail page.
 
@@ -494,7 +495,7 @@ async def committee_page(datasette, request, committee_id: str):
     candidate_id = None
 
     try:
-        db = get_libfec_database(datasette)
+        db = datasette.databases[database]
 
         # Fetch committee from database
         committee_result = await db.execute(
@@ -540,6 +541,7 @@ async def committee_page(datasette, request, committee_id: str):
     page_data = CommitteePageData(
         committee_id=committee_id,
         cycle=cycle,
+        database_name=database,
         committee=committee,
         candidate=candidate,
         filings=filings,
@@ -558,13 +560,13 @@ async def committee_page(datasette, request, committee_id: str):
     )
 
 
-@router.GET("/-/libfec/filing-day$")
+@router.GET("/(?P<database>[^/]+)/-/libfec/filing-day$")
 @check_permission()
-async def filing_day_page(datasette, request):
+async def filing_day_page(datasette, request, database: str):
     """
     Filing Day page for comparing F3 reports from the same reporting period.
     """
-    db = get_libfec_database(datasette)
+    db = datasette.databases[database]
     page_data = FilingDayPageData(database_name=db.name)
     return Response.html(
         await datasette.render_template(

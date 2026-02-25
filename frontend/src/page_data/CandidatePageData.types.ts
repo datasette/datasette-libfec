@@ -7,6 +7,7 @@
 
 export type CandidateId = string;
 export type Cycle = number;
+export type DatabaseName = string;
 export type CandidateId1 = string;
 export type Name = string | null;
 export type PartyAffiliation = string | null;
@@ -51,6 +52,7 @@ export type Error = string | null;
 export interface CandidatePageData {
   candidate_id: CandidateId;
   cycle: Cycle;
+  database_name: DatabaseName;
   candidate?: Candidate | null;
   committee?: Committee | null;
   filings?: Filings;

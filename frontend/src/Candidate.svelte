@@ -1,9 +1,13 @@
 <script lang="ts">
   import type { CandidatePageData } from './page_data/CandidatePageData.types.ts';
   import { loadPageData } from './page_data/load.ts';
+  import { get } from 'svelte/store';
+  import { databaseName as databaseNameStore, basePath as basePathStore } from './stores';
   import Breadcrumb, { type BreadcrumbItem } from './components/Breadcrumb.svelte';
 
   const pageData = loadPageData<CandidatePageData>();
+  databaseNameStore.set(pageData.database_name);
+  const basePath = get(basePathStore);
 
   const officeNames: Record<string, string> = {
     H: 'House',
@@ -29,7 +33,7 @@
     if (candidate.office === 'H' && candidate.district) {
       params.set('district', candidate.district.toString());
     }
-    return `/-/libfec/contest?${params.toString()}`;
+    return `${basePath}/contest?${params.toString()}`;
   }
 
   // Build office description
@@ -45,7 +49,7 @@
 
   // Build breadcrumb items
   function getBreadcrumbItems(): BreadcrumbItem[] {
-    const items: BreadcrumbItem[] = [{ label: 'FEC Data', href: '/-/libfec' }];
+    const items: BreadcrumbItem[] = [{ label: 'FEC Data', href: basePath }];
 
     const c = pageData.candidate;
     const state = c?.state;
@@ -127,7 +131,7 @@
           {#each pageData.filings as filing}
             <tr>
               <td>
-                <a href="/-/libfec/filing/{filing.filing_id}">
+                <a href="{basePath}/filing/{filing.filing_id}">
                   FEC-{filing.filing_id}
                 </a>
               </td>
@@ -151,7 +155,7 @@
       {#if pageData.committee}
         <div class="footer-item">
           <span class="footer-label">Principal Committee:</span>
-          <a href="/-/libfec/committee/{pageData.committee.committee_id}?cycle={pageData.cycle}">
+          <a href="{basePath}/committee/{pageData.committee.committee_id}?cycle={pageData.cycle}">
             {pageData.committee.name || pageData.committee.committee_id}
           </a>
         </div>
