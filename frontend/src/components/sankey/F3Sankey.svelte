@@ -10,9 +10,10 @@
   }
 
   let { items, databaseName, filingId }: Props = $props();
+  let wrapper: HTMLDivElement;
   let container: HTMLDivElement;
   let toggledCoh = $state(true);
-  const WIDTH = 700;
+  let width = $state(700);
 
   function buildScheduleUrl(node: F3Node): string | null {
     if (!node.schedule || !node.line_number) return null;
@@ -34,24 +35,37 @@
     }
   }
 
-  onMount(() => {
+  function render() {
+    if (!container) return;
+    container.innerHTML = '';
     container.appendChild(
-      F3Sankey(items, { width: WIDTH, showCoh: toggledCoh, onClick: handleNodeClick })
+      F3Sankey(items, { width, showCoh: toggledCoh, onClick: handleNodeClick })
     );
+  }
+
+  onMount(() => {
+    width = wrapper.clientWidth;
+    render();
+
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w != null && Math.abs(w - width) > 1) {
+        width = w;
+      }
+    });
+    ro.observe(wrapper);
+    return () => ro.disconnect();
   });
 
   $effect(() => {
+    // Track reactive deps
     toggledCoh;
-    if (container && container.firstChild) {
-      container.innerHTML = '';
-      container.appendChild(
-        F3Sankey(items, { width: WIDTH, showCoh: toggledCoh, onClick: handleNodeClick })
-      );
-    }
+    width;
+    render();
   });
 </script>
 
-<div class="wrapper">
+<div class="wrapper" bind:this={wrapper}>
   <div class="container" bind:this={container}></div>
   <div class="toggle-row">
     <input type="checkbox" id="toggle" bind:checked={toggledCoh} />

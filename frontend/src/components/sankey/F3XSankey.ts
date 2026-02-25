@@ -66,7 +66,7 @@ export interface F3XNode {
   to?: keyof F3XInputRow;
   from?: keyof F3XInputRow;
   group: keyof typeof groupColors;
-  schedule: null | 'A' | 'B' | 'D' | 'H3' | 'H4' | 'H6';
+  schedule: null | 'A' | 'B' | 'D' | 'E' | 'H3' | 'H4' | 'H6';
   line_number: null | string;
   clickable: boolean;
   value?: (data: F3XInputRow[]) => number;
@@ -97,18 +97,18 @@ const f3x_nodes: F3XNode[] = [
   {
     id: 'col_a_individual_contribution_total',
     label: 'Individuals',
-    to: 'col_a_total_contributions',
+    to: 'col_a_total_receipts',
     group: 'individuals',
     line_number: '11AIII',
     schedule: 'A',
     clickable: false,
   },
 
-  // Other contributions → total contributions
+  // Other contributions → total receipts
   {
     id: 'col_a_political_party_committees',
     label: 'Political Party',
-    to: 'col_a_total_contributions',
+    to: 'col_a_total_receipts',
     group: 'contributions',
     line_number: '11B',
     schedule: 'A',
@@ -117,22 +117,11 @@ const f3x_nodes: F3XNode[] = [
   {
     id: 'col_a_other_political_committees_pacs',
     label: 'Other PACs',
-    to: 'col_a_total_contributions',
+    to: 'col_a_total_receipts',
     group: 'contributions',
     line_number: '11C',
     schedule: 'A',
     clickable: true,
-  },
-
-  // Total contributions → total receipts
-  {
-    id: 'col_a_total_contributions',
-    label: 'Contributions',
-    to: 'col_a_total_receipts',
-    group: 'contributions',
-    line_number: '11D',
-    schedule: 'A',
-    clickable: false,
   },
 
   // Other receipt items → total receipts
@@ -295,7 +284,7 @@ const f3x_nodes: F3XNode[] = [
     from: 'col_a_total_receipts',
     group: 'disburse',
     line_number: '24',
-    schedule: 'B',
+    schedule: 'E',
     clickable: true,
   },
   {
