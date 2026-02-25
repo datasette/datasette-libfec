@@ -53,6 +53,7 @@ interface SankeyChartOptions {
   marginRight?: number;
   marginBottom?: number;
   marginLeft?: number;
+  nodeClickable?: ((d: any) => boolean) | undefined;
   onClick?: ((d: any) => void) | undefined;
 }
 
@@ -98,6 +99,7 @@ export function SankeyChart(
     marginRight = 1, // right margin, in pixels
     marginBottom = 5, // bottom margin, in pixels
     marginLeft = 1, // left margin, in pixels
+    nodeClickable = undefined as ((d: any) => boolean) | undefined, // given d in nodes, returns whether the node is clickable
     onClick = undefined as ((d: any) => void) | undefined, // click handler for nodes
   }: SankeyChartOptions = {}
 ): SVGSVGElement {
@@ -196,7 +198,73 @@ export function SankeyChart(
     .data(linksArray)
     .join('g')
     .style('mix-blend-mode', linkMixBlendMode);
-  link.on('click', (_event, d) => console.log(d));
+  // Clicking a link delegates to onClick with the clickable node (source preferred)
+  link.on('click', (_event, d: any) => {
+    if (!onClick || !nodeClickable) return;
+    const clickableNode = nodeClickable(d.source)
+      ? d.source
+      : nodeClickable(d.target)
+        ? d.target
+        : null;
+    if (clickableNode) onClick(clickableNode);
+  });
+
+  // Clickable node/link interactivity
+  // ──────────────────────────────────
+  // When `nodeClickable` is provided, nodes and links get interactive hover
+  // effects to signal that they are clickable:
+  //
+  //   Nodes:  cursor: pointer, darken on hover via CSS brightness(0.8) filter
+  //   Links:  cursor: pointer, bold on hover via increased opacity (0.8)
+  //
+  // Hover highlighting is cross-referenced between nodes and links:
+  //   - Hovering a clickable node also highlights all links connected to it
+  //   - Hovering a clickable link also highlights the clickable node at its end
+  //   - On mouse leave, all highlights are cleared
+  //
+  // A link is considered clickable if either its source or target node is
+  // clickable. Clicking a link fires onClick with the first clickable node
+  // found (source preferred over target).
+  if (nodeClickable) {
+    // A link is clickable if either end is a clickable node
+    const isLinkClickable = (d: any) => nodeClickable(d.source) || nodeClickable(d.target);
+
+    // Node hover: darken self + highlight connected links
+    node
+      .style('cursor', (d: any) => (nodeClickable(d) ? 'pointer' : 'default'))
+      .style('transition', 'filter 0.15s ease')
+      .on('mouseenter', function (_event: any, d: any) {
+        if (!nodeClickable(d)) return;
+        d3.select(this).style('filter', 'brightness(0.8)');
+        link.each(function (ld: any) {
+          if (ld.source.id === d.id || ld.target.id === d.id) {
+            d3.select(this).style('opacity', 0.8);
+          }
+        });
+      })
+      .on('mouseleave', function () {
+        d3.select(this).style('filter', null);
+        link.style('opacity', null);
+      });
+
+    // Link hover: bold self + darken the clickable node at its end
+    link
+      .style('cursor', (d: any) => (isLinkClickable(d) ? 'pointer' : 'default'))
+      .style('transition', 'opacity 0.15s ease')
+      .on('mouseenter', function (_event: any, d: any) {
+        if (!isLinkClickable(d)) return;
+        d3.select(this).style('opacity', 0.8);
+        node.each(function (nd: any) {
+          if ((nd.id === d.source.id || nd.id === d.target.id) && nodeClickable(nd)) {
+            d3.select(this).style('filter', 'brightness(0.8)');
+          }
+        });
+      })
+      .on('mouseleave', function () {
+        d3.select(this).style('opacity', null);
+        node.style('filter', null);
+      });
+  }
   if (linkColor === 'source-target') {
     link
       .append('linearGradient')

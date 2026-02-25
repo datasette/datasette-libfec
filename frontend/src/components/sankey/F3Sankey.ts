@@ -49,6 +49,7 @@ export interface F3Node {
   group: keyof typeof groupColors;
   schedule: null | 'A' | 'B' | 'D';
   line_number: null | string;
+  clickable: boolean;
   value?: (data: InputRow[]) => number;
 }
 
@@ -60,6 +61,7 @@ const f3_nodes: F3Node[] = [
     group: 'individual-item',
     line_number: '11AI',
     schedule: 'A',
+    clickable: true,
   },
   {
     id: 'col_a_individual_contributions_unitemized',
@@ -68,6 +70,7 @@ const f3_nodes: F3Node[] = [
     group: 'individual-item',
     line_number: '11AII',
     schedule: 'A',
+    clickable: false,
   },
   {
     id: 'col_a_total_individual_contributions',
@@ -76,6 +79,7 @@ const f3_nodes: F3Node[] = [
     group: 'individuals',
     line_number: '11AIII',
     schedule: 'A',
+    clickable: false,
   },
 
   {
@@ -85,6 +89,7 @@ const f3_nodes: F3Node[] = [
     group: 'receipt-other',
     line_number: '11B',
     schedule: 'A',
+    clickable: true,
   },
   {
     id: 'col_a_pac_contributions',
@@ -93,6 +98,7 @@ const f3_nodes: F3Node[] = [
     group: 'receipt-other',
     line_number: '11C',
     schedule: 'A',
+    clickable: true,
   },
   {
     id: 'col_a_candidate_contributions',
@@ -101,6 +107,7 @@ const f3_nodes: F3Node[] = [
     group: 'receipt-other',
     line_number: '11D',
     schedule: 'A',
+    clickable: true,
   },
   {
     id: 'col_a_transfers_from_authorized',
@@ -109,6 +116,7 @@ const f3_nodes: F3Node[] = [
     group: 'receipt-other',
     line_number: '12',
     schedule: 'A',
+    clickable: true,
   },
   {
     id: 'col_a_candidate_loans',
@@ -117,6 +125,7 @@ const f3_nodes: F3Node[] = [
     group: 'receipt-other',
     line_number: '13A',
     schedule: 'A',
+    clickable: true,
   },
   {
     id: 'col_a_other_loans',
@@ -125,6 +134,7 @@ const f3_nodes: F3Node[] = [
     group: 'receipt-other',
     line_number: '13B',
     schedule: 'A',
+    clickable: true,
   },
   {
     id: 'col_a_offset_to_operating_expenditures',
@@ -133,6 +143,7 @@ const f3_nodes: F3Node[] = [
     group: 'receipt-other',
     line_number: '14',
     schedule: 'A',
+    clickable: true,
   },
   {
     id: 'col_a_other_receipts',
@@ -141,6 +152,7 @@ const f3_nodes: F3Node[] = [
     group: 'receipt-other',
     line_number: '15',
     schedule: 'A',
+    clickable: true,
   },
   {
     id: 'col_a_total_receipts',
@@ -148,6 +160,7 @@ const f3_nodes: F3Node[] = [
     group: 'receipts',
     line_number: '16',
     schedule: 'A',
+    clickable: false,
   },
   {
     id: 'col_a_operating_expenditures',
@@ -156,6 +169,7 @@ const f3_nodes: F3Node[] = [
     group: 'disburse',
     line_number: '17',
     schedule: 'B',
+    clickable: true,
   },
   {
     id: 'col_a_transfers_to_authorized',
@@ -164,6 +178,7 @@ const f3_nodes: F3Node[] = [
     group: 'disburse',
     line_number: '18',
     schedule: 'B',
+    clickable: true,
   },
   {
     id: 'col_a_candidate_loan_repayments',
@@ -172,6 +187,7 @@ const f3_nodes: F3Node[] = [
     group: 'disburse',
     line_number: '19A',
     schedule: 'B',
+    clickable: true,
   },
   {
     id: 'col_a_other_loan_repayments',
@@ -180,6 +196,7 @@ const f3_nodes: F3Node[] = [
     group: 'disburse',
     line_number: '19B',
     schedule: 'B',
+    clickable: true,
   },
   {
     id: 'col_a_total_loan_repayments',
@@ -188,6 +205,7 @@ const f3_nodes: F3Node[] = [
     group: 'disburse',
     line_number: '19C',
     schedule: 'B',
+    clickable: false,
   },
   {
     id: 'col_a_refunds_to_individuals',
@@ -196,6 +214,7 @@ const f3_nodes: F3Node[] = [
     group: 'disburse',
     line_number: '20A',
     schedule: 'B',
+    clickable: true,
   },
   {
     id: 'col_a_refunds_to_party_committees',
@@ -204,6 +223,7 @@ const f3_nodes: F3Node[] = [
     group: 'disburse',
     line_number: '20B',
     schedule: 'B',
+    clickable: true,
   },
   {
     id: 'col_a_refunds_to_other_committees',
@@ -212,6 +232,7 @@ const f3_nodes: F3Node[] = [
     group: 'disburse',
     line_number: '20C',
     schedule: 'B',
+    clickable: true,
   },
   {
     id: 'col_a_total_refunds',
@@ -220,6 +241,7 @@ const f3_nodes: F3Node[] = [
     group: 'disburse',
     line_number: '20D',
     schedule: 'B',
+    clickable: false,
   },
   {
     id: 'col_a_other_disbursements',
@@ -228,6 +250,7 @@ const f3_nodes: F3Node[] = [
     group: 'disburse',
     line_number: '21',
     schedule: 'B',
+    clickable: true,
   },
   {
     id: 'col_a_cash_beginning_reporting_period',
@@ -236,6 +259,7 @@ const f3_nodes: F3Node[] = [
     group: 'coh',
     line_number: null,
     schedule: null,
+    clickable: false,
     value: (data: InputRow[]) => {
       const idx = d3.minIndex(data, (d) => d.coverage_from_date);
       const row = idx >= 0 ? data[idx] : undefined;
@@ -249,6 +273,7 @@ const f3_nodes: F3Node[] = [
     group: 'coh',
     line_number: null,
     schedule: null,
+    clickable: false,
     value: (data: InputRow[]) => {
       const idx = d3.maxIndex(data, (d) => d.coverage_through_date);
       const row = idx >= 0 ? data[idx] : undefined;
@@ -296,6 +321,7 @@ export function F3Sankey(
       nodeAlign: 'justify',
       linkColor: 'source-target',
       nodeWidth: 10,
+      nodeClickable: (d) => f3_nodes.find((d2) => d.id === d2.id)?.clickable ?? false,
       nodeLabel: (d) => {
         const { label } = f3_nodes.find((d2) => d.id === d2.id)!;
         return [$(d.value), label];
