@@ -454,6 +454,17 @@ export function F3XSankey(
     )
     .filter((d) => d.value > 0);
 
+  // If only one source feeds into "Individuals", bypass the intermediate node
+  const individualsId = 'col_a_individual_contribution_total';
+  const inbound = links.filter((l) => l.target === individualsId);
+  if (inbound.length === 1 && inbound[0]) {
+    // Point the single inbound link directly to total_receipts
+    inbound[0].target = 'col_a_total_receipts' as keyof F3XInputRow;
+    // Remove the outbound link from Individuals → total_receipts
+    const outIdx = links.findIndex((l) => l.source === individualsId);
+    if (outIdx >= 0) links.splice(outIdx, 1);
+  }
+
   const nodes = f3x_nodes
     .map((d) => ({ id: d.id, label: d.label }))
     .filter((d) => links.some((l) => l.source === d.id || l.target === d.id));
