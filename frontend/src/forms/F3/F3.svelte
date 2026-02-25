@@ -1,6 +1,7 @@
 <script lang="ts">
   import { F3SankeyComponent, type InputRow } from '../../components/sankey';
   import SummaryCards from '../../components/SummaryCards.svelte';
+  import FilingNav from '../../components/FilingNav.svelte';
   import StateContributors from './StateContributors.svelte';
   import TopPayees from './TopPayees.svelte';
   import RelatedF3Reports from './RelatedF3Reports.svelte';
@@ -186,6 +187,9 @@
       reportCode={formData.report_code}
       coverageThroughDate={formData.coverage_through_date}
     />
+
+    <!-- Filing Navigation -->
+    <FilingNav {filerId} coverageFromDate={formData.coverage_from_date} formType="F3" />
   {:else}
     <p>No form data available</p>
   {/if}

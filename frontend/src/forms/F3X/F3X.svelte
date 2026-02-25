@@ -1,6 +1,7 @@
 <script lang="ts">
   import { F3XSankeyComponent, type F3XInputRow } from '../../components/sankey';
   import SummaryCards from '../../components/SummaryCards.svelte';
+  import FilingNav from '../../components/FilingNav.svelte';
   import { getReportLabel } from '../../utils/reportCodes';
   import F3XSummaryTable from './F3XSummaryTable.svelte';
   import IndependentExpenditures from './IndependentExpenditures.svelte';
@@ -10,10 +11,11 @@
   interface Props {
     formData: any;
     filingId: string;
+    filerId: string;
     databaseName: string;
   }
 
-  let { formData, filingId, databaseName }: Props = $props();
+  let { formData, filingId, filerId, databaseName }: Props = $props();
 
   const hasSankeyData = $derived(
     formData &&
@@ -64,6 +66,9 @@
       <h4>Financial Summary</h4>
       <F3XSummaryTable {formData} />
     </div>
+
+    <!-- Filing Navigation -->
+    <FilingNav {filerId} coverageFromDate={formData.coverage_from_date} formType="F3X" />
   {:else}
     <p>No form data available</p>
   {/if}

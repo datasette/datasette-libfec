@@ -109,7 +109,7 @@
     {:else if reportType === 'F3S'}
       <F3S {formData} {filingId} />
     {:else if reportType === 'F3X'}
-      <F3X {formData} {filingId} {databaseName} />
+      <F3X {formData} {filingId} filerId={filingData?.filer_id ?? ''} {databaseName} />
     {:else if reportType === 'F24'}
       <F24 {formData} {filingId} />
     {:else if reportType === 'F6'}
