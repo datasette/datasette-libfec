@@ -10,7 +10,7 @@
   import type { F3FormData } from './forms/F3/F3.svelte';
   import F3P from './forms/F3P.svelte';
   import F3S from './forms/F3S.svelte';
-  import F3X from './forms/F3X.svelte';
+  import F3X from './forms/F3X/F3X.svelte';
   import F24 from './forms/F24.svelte';
   import F6 from './forms/F6.svelte';
   import F99 from './forms/F99.svelte';
@@ -109,7 +109,7 @@
     {:else if reportType === 'F3S'}
       <F3S {formData} {filingId} />
     {:else if reportType === 'F3X'}
-      <F3X {formData} {filingId} />
+      <F3X {formData} {filingId} {databaseName} />
     {:else if reportType === 'F24'}
       <F24 {formData} {filingId} />
     {:else if reportType === 'F6'}
