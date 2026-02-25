@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { basePath as basePathStore, apiBasePath as apiBasePathStore } from '../stores';
+  import Popover from '../components/Popover.svelte';
 
   const bp = get(basePathStore);
   const apiBp = get(apiBasePathStore);
@@ -164,11 +165,7 @@
         </thead>
         <tbody>
           {#each syncs as sync}
-            <tr
-              class:selected={selectedSync &&
-                selectedSync.sync &&
-                selectedSync.sync.sync_id === sync.sync_id}
-            >
+            <tr>
               <td class="date-cell">{formatDate(sync.created_at)}</td>
               <td>
                 <span class="status-badge {getStatusClass(sync.status)}">
@@ -200,114 +197,104 @@
       </table>
     </div>
   {/if}
-
-  {#if selectedSync && selectedSync.sync}
-    <div class="detail-panel">
-      <div class="detail-header">
-        <h3>Sync Details</h3>
-        <button type="button" class="close-btn" onclick={closeDetail}>Close</button>
-      </div>
-
-      <div class="detail-content">
-        <div class="detail-section">
-          <h4>Sync Info</h4>
-          <dl>
-            <dt>Sync ID</dt>
-            <dd><code>{selectedSync.sync.sync_uuid}</code></dd>
-            <dt>Started</dt>
-            <dd>{formatDate(selectedSync.sync.created_at)}</dd>
-            {#if selectedSync.sync.completed_at}
-              <dt>Completed</dt>
-              <dd>{formatDate(selectedSync.sync.completed_at)}</dd>
-            {/if}
-            <dt>Status</dt>
-            <dd>
-              <span class="status-badge {getStatusClass(selectedSync.sync.status)}">
-                {selectedSync.sync.status}
-              </span>
-            </dd>
-            <dt>Total Feed Items</dt>
-            <dd>{selectedSync.sync.total_feed_items ?? 'N/A'}</dd>
-            <dt>Filtered Items</dt>
-            <dd>{selectedSync.sync.filtered_items ?? 'N/A'}</dd>
-            <dt>New Filings</dt>
-            <dd>{selectedSync.sync.new_filings_count}</dd>
-            <dt>Exported</dt>
-            <dd>{selectedSync.sync.exported_count}</dd>
-            <dt>Cover Only</dt>
-            <dd>{selectedSync.sync.cover_only ? 'Yes' : 'No'}</dd>
-            {#if selectedSync.sync.error_message}
-              <dt>Error</dt>
-              <dd class="error-text">{selectedSync.sync.error_message}</dd>
-            {/if}
-          </dl>
-        </div>
-
-        {#if getActiveFilters(selectedSync.sync).length > 0}
-          <div class="detail-section">
-            <h4>Filters</h4>
-            <ul class="filters-list">
-              {#each getActiveFilters(selectedSync.sync) as filter}
-                <li>{filter}</li>
-              {/each}
-            </ul>
-          </div>
-        {/if}
-
-        {#if selectedSync.filings && selectedSync.filings.length > 0}
-          <div class="detail-section">
-            <h4>Filings ({selectedSync.filings.length})</h4>
-            <div class="filings-list-container">
-              <table class="filings-table">
-                <thead>
-                  <tr>
-                    <th>Filing ID</th>
-                    <th>Committee</th>
-                    <th>Form</th>
-                    <th>Title</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {#each selectedSync.filings as filing}
-                    <tr
-                      class:success={filing.export_success}
-                      class:failure={!filing.export_success}
-                    >
-                      <td>
-                        <a href="{bp}/filing/{filing.filing_id}" target="_blank">
-                          {filing.filing_id}
-                        </a>
-                      </td>
-                      <td>
-                        {#if filing.committee_id}
-                          <a href="{bp}/committee/{filing.committee_id}" target="_blank">
-                            {filing.committee_id}
-                          </a>
-                        {:else}
-                          -
-                        {/if}
-                      </td>
-                      <td>{filing.form_type || '-'}</td>
-                      <td class="title-cell">{filing.rss_title || '-'}</td>
-                      <td>
-                        {#if filing.export_success}
-                          <span class="success-icon">✓</span>
-                        {:else}
-                          <span class="failure-icon" title={filing.export_message || ''}>✗</span>
-                        {/if}
-                      </td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        {/if}
-      </div>
-    </div>
-  {/if}
 </section>
+
+{#if selectedSync && selectedSync.sync}
+  <Popover title="Sync Details" onClose={closeDetail}>
+    <div class="detail-section">
+      <h4>Sync Info</h4>
+      <dl>
+        <dt>Sync ID</dt>
+        <dd><code>{selectedSync.sync.sync_uuid}</code></dd>
+        <dt>Started</dt>
+        <dd>{formatDate(selectedSync.sync.created_at)}</dd>
+        {#if selectedSync.sync.completed_at}
+          <dt>Completed</dt>
+          <dd>{formatDate(selectedSync.sync.completed_at)}</dd>
+        {/if}
+        <dt>Status</dt>
+        <dd>
+          <span class="status-badge {getStatusClass(selectedSync.sync.status)}">
+            {selectedSync.sync.status}
+          </span>
+        </dd>
+        <dt>Total Feed Items</dt>
+        <dd>{selectedSync.sync.total_feed_items ?? 'N/A'}</dd>
+        <dt>Filtered Items</dt>
+        <dd>{selectedSync.sync.filtered_items ?? 'N/A'}</dd>
+        <dt>New Filings</dt>
+        <dd>{selectedSync.sync.new_filings_count}</dd>
+        <dt>Exported</dt>
+        <dd>{selectedSync.sync.exported_count}</dd>
+        <dt>Cover Only</dt>
+        <dd>{selectedSync.sync.cover_only ? 'Yes' : 'No'}</dd>
+        {#if selectedSync.sync.error_message}
+          <dt>Error</dt>
+          <dd class="error-text">{selectedSync.sync.error_message}</dd>
+        {/if}
+      </dl>
+    </div>
+
+    {#if getActiveFilters(selectedSync.sync).length > 0}
+      <div class="detail-section">
+        <h4>Filters</h4>
+        <ul class="filters-list">
+          {#each getActiveFilters(selectedSync.sync) as filter}
+            <li>{filter}</li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+
+    {#if selectedSync.filings && selectedSync.filings.length > 0}
+      <div class="detail-section">
+        <h4>Filings ({selectedSync.filings.length})</h4>
+        <div class="filings-list-container">
+          <table class="filings-table">
+            <thead>
+              <tr>
+                <th>Filing ID</th>
+                <th>Committee</th>
+                <th>Form</th>
+                <th>Title</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each selectedSync.filings as filing}
+                <tr class:success={filing.export_success} class:failure={!filing.export_success}>
+                  <td>
+                    <a href="{bp}/filing/{filing.filing_id}" target="_blank">
+                      {filing.filing_id}
+                    </a>
+                  </td>
+                  <td>
+                    {#if filing.committee_id}
+                      <a href="{bp}/committee/{filing.committee_id}" target="_blank">
+                        {filing.committee_id}
+                      </a>
+                    {:else}
+                      -
+                    {/if}
+                  </td>
+                  <td>{filing.form_type || '-'}</td>
+                  <td class="title-cell">{filing.rss_title || '-'}</td>
+                  <td>
+                    {#if filing.export_success}
+                      <span class="success-icon">&#10003;</span>
+                    {:else}
+                      <span class="failure-icon" title={filing.export_message || ''}>&#10007;</span>
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {/if}
+  </Popover>
+{/if}
 
 <style>
   .rss-sync-history {
@@ -389,10 +376,6 @@
     background: #f8f9fa;
   }
 
-  .syncs-table tr.selected {
-    background: #e7f3ff;
-  }
-
   .date-cell {
     white-space: nowrap;
   }
@@ -465,44 +448,7 @@
     background: #0052a3;
   }
 
-  .detail-panel {
-    margin-top: 1.5em;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    background: white;
-  }
-
-  .detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1em;
-    background: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  .detail-header h3 {
-    margin: 0;
-  }
-
-  .close-btn {
-    padding: 0.35em 0.75em;
-    font-size: 0.85em;
-    background: #6c757d;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-  }
-
-  .close-btn:hover {
-    background: #5a6268;
-  }
-
-  .detail-content {
-    padding: 1em;
-  }
-
+  /* Popover content styles */
   .detail-section {
     margin-bottom: 1.5em;
   }

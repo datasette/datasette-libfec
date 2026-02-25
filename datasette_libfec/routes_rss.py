@@ -60,6 +60,19 @@ class RssSyncRecord(BaseModel):
     error_message: Optional[str] = None
 
 
+class RssFilingRecord(BaseModel):
+    filing_id: str
+    rss_pub_date: Optional[str] = None
+    rss_title: Optional[str] = None
+    committee_id: Optional[str] = None
+    form_type: Optional[str] = None
+    coverage_from: Optional[str] = None
+    coverage_through: Optional[str] = None
+    report_type: Optional[str] = None
+    export_success: bool = True
+    export_message: Optional[str] = None
+
+
 @router.GET("/(?P<database>[^/]+)/-/api/libfec/rss/status$", output=RssStatusResponse)
 @check_permission()
 async def rss_status(datasette, request, database: str):
@@ -138,28 +151,90 @@ async def rss_syncs(datasette, request, database: str):
         LIMIT 20
     """)
 
-    syncs = []
-    for row in result.rows:
-        syncs.append(
-            RssSyncRecord(
-                sync_id=row[0],
-                sync_uuid=row[1],
-                created_at=row[2],
-                completed_at=row[3],
-                since_filter=row[4],
-                preset_filter=row[5],
-                form_type_filter=row[6],
-                committee_filter=row[7],
-                state_filter=row[8],
-                party_filter=row[9],
-                total_feed_items=row[10],
-                filtered_items=row[11],
-                new_filings_count=row[12] or 0,
-                exported_count=row[13] or 0,
-                cover_only=bool(row[14]),
-                status=row[15] or "started",
-                error_message=row[16],
-            ).model_dump()
-        )
+    syncs = [_parse_sync_row(row) for row in result.rows]
 
     return Response.json({"syncs": syncs})
+
+
+def _parse_sync_row(row) -> dict:
+    return RssSyncRecord(
+        sync_id=row[0],
+        sync_uuid=row[1],
+        created_at=row[2],
+        completed_at=row[3],
+        since_filter=row[4],
+        preset_filter=row[5],
+        form_type_filter=row[6],
+        committee_filter=row[7],
+        state_filter=row[8],
+        party_filter=row[9],
+        total_feed_items=row[10],
+        filtered_items=row[11],
+        new_filings_count=row[12] or 0,
+        exported_count=row[13] or 0,
+        cover_only=bool(row[14]),
+        status=row[15] or "started",
+        error_message=row[16],
+    ).model_dump()
+
+
+@router.GET("/(?P<database>[^/]+)/-/api/libfec/rss/syncs/(?P<sync_id>[0-9]+)$")
+@check_permission()
+async def rss_sync_detail(datasette, request, database: str, sync_id: str):
+    """Get detail for a single sync including its filings."""
+    db = datasette.databases[database]
+
+    sync_result = await db.execute(
+        """
+        SELECT sync_id, sync_uuid, created_at, completed_at,
+               since_filter, preset_filter, form_type_filter,
+               committee_filter, state_filter, party_filter,
+               total_feed_items, filtered_items, new_filings_count,
+               exported_count, cover_only, status, error_message
+        FROM libfec_rss_syncs
+        WHERE sync_id = ?
+    """,
+        [sync_id],
+    )
+
+    row = sync_result.first()
+    if not row:
+        return Response.json(
+            {"status": "error", "message": "Sync not found"}, status=404
+        )
+
+    filings_result = await db.execute(
+        """
+        SELECT filing_id, rss_pub_date, rss_title, committee_id,
+               form_type, coverage_from, coverage_through, report_type,
+               export_success, export_message
+        FROM libfec_rss_filings
+        WHERE sync_id = ?
+        ORDER BY rss_pub_date DESC
+    """,
+        [sync_id],
+    )
+
+    filings = [
+        RssFilingRecord(
+            filing_id=f[0],
+            rss_pub_date=f[1],
+            rss_title=f[2],
+            committee_id=f[3],
+            form_type=f[4],
+            coverage_from=f[5],
+            coverage_through=f[6],
+            report_type=f[7],
+            export_success=bool(f[8]),
+            export_message=f[9],
+        ).model_dump()
+        for f in filings_result.rows
+    ]
+
+    return Response.json(
+        {
+            "status": "success",
+            "sync": _parse_sync_row(row),
+            "filings": filings,
+        }
+    )
