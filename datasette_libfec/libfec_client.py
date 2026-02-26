@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 import asyncio
-import subprocess
 import time
 from pathlib import Path
 from typing import Optional, TYPE_CHECKING, List
@@ -19,7 +19,16 @@ class LibfecClient:
         if bin_path:
             self.libfec_path = Path(bin_path)
         else:
-            self.libfec_path = Path(sys.executable).parent / "libfec"
+            # Try the Python executable's directory first, then fall back to PATH
+            candidate = Path(sys.executable).parent / "libfec"
+            if candidate.exists():
+                self.libfec_path = candidate
+            else:
+                found = shutil.which("libfec")
+                if found:
+                    self.libfec_path = Path(found)
+                else:
+                    self.libfec_path = candidate
 
     async def _run_libfec_command_async(self, args):
         """Async command execution - doesn't block event loop"""
