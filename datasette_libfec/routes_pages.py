@@ -4,7 +4,13 @@ Routes for contest, candidate, and committee pages.
 
 from datasette import Response
 
-from .router import router, check_permission, check_write_permission, LIBFEC_WRITE_NAME
+from .router import (
+    router,
+    check_permission,
+    check_write_permission,
+    check_alerts_available,
+    LIBFEC_WRITE_NAME,
+)
 from .page_data import (
     Candidate,
     CandidatePageData,
@@ -538,6 +544,8 @@ async def committee_page(datasette, request, database: str, committee_id: str):
     except Exception as e:
         error = str(e)
 
+    alerts_available = await check_alerts_available(datasette, request.actor)
+
     page_data = CommitteePageData(
         committee_id=committee_id,
         cycle=cycle,
@@ -545,6 +553,7 @@ async def committee_page(datasette, request, database: str, committee_id: str):
         committee=committee,
         candidate=candidate,
         filings=filings,
+        alerts_available=alerts_available,
         error=error,
     )
     committee_name = committee.name if committee else committee_id

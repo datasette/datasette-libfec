@@ -7,6 +7,7 @@
   import { useQuery } from './useQuery.svelte';
   import Breadcrumb, { type BreadcrumbItem } from './components/Breadcrumb.svelte';
   import CommitteeSankey from './components/CommitteeSankey.svelte';
+  import OverflowMenu from './components/OverflowMenu.svelte';
 
   const pageData = loadPageData<CommitteePageData>();
   databaseNameStore.set(pageData.database_name);
@@ -111,6 +112,12 @@ SELECT * FROM final`;
   }
 
   const breadcrumbItems = getBreadcrumbItems();
+
+  const alertUrl = $derived(() => {
+    const params = new URLSearchParams();
+    params.set('filer_id__exact', pageData.committee_id);
+    return `/-/${pageData.database_name}/datasette-alerts/new?${params.toString()}`;
+  });
 </script>
 
 <div class="committee-page">
@@ -145,6 +152,12 @@ SELECT * FROM final`;
             View on FEC.gov &rarr;
           </a>
         </div>
+
+        {#if pageData.alerts_available}
+          <OverflowMenu>
+            <a href={alertUrl()}>Configure alert</a>
+          </OverflowMenu>
+        {/if}
       </div>
     </div>
 

@@ -47,6 +47,7 @@ export type FilerName = string | null;
 export type CoverageFromDate = string | null;
 export type CoverageThroughDate = string | null;
 export type Filings = Filing[];
+export type AlertsAvailable = boolean;
 export type Error = string | null;
 
 export interface CommitteePageData {
@@ -56,6 +57,7 @@ export interface CommitteePageData {
   committee?: Committee | null;
   candidate?: Candidate | null;
   filings?: Filings;
+  alerts_available?: AlertsAvailable;
   error?: Error;
   [k: string]: unknown;
 }

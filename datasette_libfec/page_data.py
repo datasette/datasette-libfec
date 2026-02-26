@@ -66,6 +66,7 @@ class CommitteePageData(BaseModel):
     committee: Committee | None = None
     candidate: Candidate | None = None
     filings: list[Filing] = []
+    alerts_available: bool = False
     error: str | None = None
 
 

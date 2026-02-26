@@ -54,7 +54,7 @@ check:
     just check-frontend
 
 dev *flags:
-  DATASETTE_SECRET=abc123 uv run datasette -p 8004 tmp.db ye2.db {{flags}}
+  DATASETTE_SECRET=abc123 uv run --group alerts --with datasette-alerts-discord datasette -p 8004 tmp.db {{flags}}
 
 dev-with-hmr *flags:
   DATASETTE_LIBFEC_VITE_PATH=http://localhost:5177/ \

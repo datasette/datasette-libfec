@@ -503,6 +503,11 @@
       "title": "Filings",
       "type": "array"
     },
+    "alerts_available": {
+      "default": false,
+      "title": "Alerts Available",
+      "type": "boolean"
+    },
     "error": {
       "anyOf": [
         {

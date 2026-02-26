@@ -22,12 +22,21 @@
 
   async function fetchData() {
     const sql = `
-WITH matching_filings AS (
-  SELECT fil.filing_id, fil.coverage_from_date, fil.coverage_through_date
+WITH all_filings AS (
+  SELECT fil.filing_id, fil.report_id, fil.coverage_from_date, fil.coverage_through_date
   FROM libfec_filings fil
   WHERE fil.filer_id = :committee_id
     AND fil.cover_record_form = :form_type
     AND strftime('%Y', fil.coverage_through_date) IN (:year1, :year2)
+),
+matching_filings AS (
+  SELECT *
+  FROM all_filings
+  WHERE filing_id NOT IN (
+    SELECT substr(report_id, 5)
+    FROM all_filings
+    WHERE report_id LIKE 'FEC-%'
+  )
 ),
 final AS (
   SELECT f.*, mf.coverage_from_date, mf.coverage_through_date
@@ -89,6 +98,14 @@ SELECT * FROM final`;
       {#if dateRange}
         <span class="date-range">{dateRange.from} to {dateRange.through}</span>
       {/if}
+      {#if filingIds.length > 0}
+        <a
+          class="filings-link"
+          href="/{databaseName}/{formTable}?_sort=filing_id&filing_id__in={filingIds.join('%2C')}"
+        >
+          {filingIds.length} filing{filingIds.length === 1 ? '' : 's'}
+        </a>
+      {/if}
     </h2>
 
     {#if isF3}
@@ -119,6 +136,18 @@ SELECT * FROM final`;
     font-weight: normal;
     color: #666;
     margin-left: 0.5rem;
+  }
+
+  .filings-link {
+    font-size: 0.85rem;
+    font-weight: normal;
+    color: #0066cc;
+    text-decoration: none;
+    margin-left: 0.5rem;
+  }
+
+  .filings-link:hover {
+    text-decoration: underline;
   }
 
   .error {

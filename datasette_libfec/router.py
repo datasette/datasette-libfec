@@ -8,6 +8,16 @@ LIBFEC_ACCESS_NAME = "datasette_libfec_access"
 LIBFEC_WRITE_NAME = "datasette_libfec_write"
 
 
+async def check_alerts_available(datasette, actor) -> bool:
+    """Check if datasette-alerts is installed and the actor has alerts permission."""
+    try:
+        from datasette_alerts import ALERTS_ACCESS_NAME  # type: ignore[import-not-found]
+
+        return await datasette.allowed(action=ALERTS_ACCESS_NAME, actor=actor)
+    except ImportError:
+        return False
+
+
 def check_permission():
     """Decorator for routes requiring read access."""
 
