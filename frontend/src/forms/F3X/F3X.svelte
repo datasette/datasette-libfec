@@ -44,7 +44,7 @@
     {#if hasSankeyData && sankeyItems.length > 0}
       <div class="section-box">
         <h4>Financial Activity</h4>
-        <F3XSankeyComponent items={sankeyItems} {databaseName} {filingId} />
+        <F3XSankeyComponent items={sankeyItems} {databaseName} filingIds={[filingId]} />
       </div>
     {/if}
 

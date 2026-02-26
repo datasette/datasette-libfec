@@ -3,7 +3,10 @@
   import { loadPageData } from './page_data/load.ts';
   import { get } from 'svelte/store';
   import { databaseName as databaseNameStore, basePath as basePathStore } from './stores';
+  import { query } from './api';
+  import { useQuery } from './useQuery.svelte';
   import Breadcrumb, { type BreadcrumbItem } from './components/Breadcrumb.svelte';
+  import CommitteeSankey from './components/CommitteeSankey.svelte';
 
   const pageData = loadPageData<CommitteePageData>();
   databaseNameStore.set(pageData.database_name);
@@ -42,6 +45,39 @@
   // Determine if this is a principal campaign committee
   const isPrincipal = pageData.committee?.designation === 'P' && pageData.candidate;
   const committeeTypeLabel = getCommitteeTypeLabel(pageData.committee?.committee_type);
+
+  // --- Cycle state ---
+  let selectedCycle = $state(pageData.cycle);
+
+  // Fetch available cycles from filing coverage dates
+  async function fetchCycles() {
+    const sql = `
+WITH filing_years AS (
+  SELECT DISTINCT CAST(strftime('%Y', fil.coverage_through_date) AS INTEGER) AS yr
+  FROM libfec_filings fil
+  WHERE fil.filer_id = :committee_id
+    AND fil.coverage_through_date IS NOT NULL
+),
+final AS (
+  SELECT DISTINCT CASE WHEN yr % 2 = 1 THEN yr + 1 ELSE yr END AS cycle
+  FROM filing_years
+  ORDER BY cycle DESC
+)
+SELECT * FROM final`;
+    const rows = await query(pageData.database_name, sql, {
+      committee_id: pageData.committee_id,
+    });
+    return (rows as { cycle: number }[]).map((r) => r.cycle);
+  }
+
+  const cyclesResult = useQuery(fetchCycles);
+
+  // Sync cycle to URL param
+  $effect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('cycle', String(selectedCycle));
+    window.history.replaceState({}, '', url.toString());
+  });
 
   // Build breadcrumb items
   function getBreadcrumbItems(): BreadcrumbItem[] {
@@ -88,14 +124,27 @@
         {/if}
       </h1>
 
-      <div class="external-link">
-        <a
-          href="https://www.fec.gov/data/committee/{pageData.committee_id}/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          View on FEC.gov &rarr;
-        </a>
+      <div class="title-right">
+        {#if cyclesResult.data && cyclesResult.data.length > 0}
+          <div class="cycle-select">
+            <label for="cycle-select">Cycle:</label>
+            <select id="cycle-select" bind:value={selectedCycle}>
+              {#each cyclesResult.data as yr}
+                <option value={yr}>{yr}</option>
+              {/each}
+            </select>
+          </div>
+        {/if}
+
+        <div class="external-link">
+          <a
+            href="https://www.fec.gov/data/committee/{pageData.committee_id}/?cycle={selectedCycle}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View on FEC.gov &rarr;
+          </a>
+        </div>
       </div>
     </div>
 
@@ -122,6 +171,15 @@
     <div class="info-section">
       <p>Committee not found.</p>
     </div>
+  {/if}
+
+  {#if pageData.committee?.committee_type}
+    <CommitteeSankey
+      committeeId={pageData.committee_id}
+      committeeType={pageData.committee.committee_type}
+      databaseName={pageData.database_name}
+      {selectedCycle}
+    />
   {/if}
 
   {#if pageData.filings && pageData.filings.length > 0}
@@ -240,8 +298,28 @@
     text-decoration: underline;
   }
 
-  .external-link {
-    margin-top: 0.5rem;
+  .title-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .cycle-select {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .cycle-select label {
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .cycle-select select {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
   }
 
   .external-link a {

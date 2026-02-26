@@ -6,14 +6,19 @@
   interface Props {
     items: InputRow[];
     databaseName: string;
-    filingId: string;
+    filingIds: string[];
   }
 
-  let { items, databaseName, filingId }: Props = $props();
+  let { items, databaseName, filingIds }: Props = $props();
   let wrapper: HTMLDivElement;
   let container: HTMLDivElement;
   let toggledCoh = $state(true);
   let width = $state(700);
+
+  function filingIdParams(): Record<string, string> {
+    if (filingIds.length === 1) return { filing_id__exact: filingIds[0]! };
+    return { filing_id__in: filingIds.join(',') };
+  }
 
   function buildScheduleUrl(node: F3Node): string | null {
     if (!node.schedule || !node.line_number) return null;
@@ -22,7 +27,7 @@
     const formType = `S${node.schedule}${node.line_number}`;
     const params = new URLSearchParams({
       _sort: 'rowid',
-      filing_id__exact: filingId,
+      ...filingIdParams(),
       form_type__exact: formType,
     });
     return `/${databaseName}/${tableName}?${params}`;
