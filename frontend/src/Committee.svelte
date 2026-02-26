@@ -47,6 +47,33 @@
   const isPrincipal = pageData.committee?.designation === 'P' && pageData.candidate;
   const committeeTypeLabel = getCommitteeTypeLabel(pageData.committee?.committee_type);
 
+  // Build contest label + URL for the candidate's race
+  function getContestInfo(): { label: string; href: string } | null {
+    const cand = pageData.candidate;
+    if (!cand?.office || !cand?.state) return null;
+
+    let label = cand.state + '-' + (officeNames[cand.office] || cand.office);
+    if (cand.office === 'H' && cand.district) {
+      label = cand.state + '-' + cand.district;
+    } else if (cand.office === 'S') {
+      label = cand.state + ' Senate';
+    } else if (cand.office === 'P') {
+      label = 'President';
+    }
+
+    const params = new URLSearchParams();
+    params.set('state', cand.state);
+    params.set('office', cand.office);
+    params.set('cycle', pageData.cycle.toString());
+    if (cand.office === 'H' && cand.district) {
+      params.set('district', cand.district.toString());
+    }
+
+    return { label, href: `${basePath}/contest?${params.toString()}` };
+  }
+
+  const contestInfo = getContestInfo();
+
   // --- Cycle state ---
   let selectedCycle = $state(pageData.cycle);
 
@@ -116,6 +143,7 @@ SELECT * FROM final`;
   const alertUrl = $derived(() => {
     const params = new URLSearchParams();
     params.set('filer_id__exact', pageData.committee_id);
+    params.set('table_name', "libfec_filings");
     return `/-/${pageData.database_name}/datasette-alerts/new?${params.toString()}`;
   });
 </script>
@@ -143,7 +171,7 @@ SELECT * FROM final`;
           </div>
         {/if}
 
-        <div class="external-link">
+        <OverflowMenu>
           <a
             href="https://www.fec.gov/data/committee/{pageData.committee_id}/?cycle={selectedCycle}"
             target="_blank"
@@ -151,13 +179,10 @@ SELECT * FROM final`;
           >
             View on FEC.gov &rarr;
           </a>
-        </div>
-
-        {#if pageData.alerts_available}
-          <OverflowMenu>
-            <a href={alertUrl()}>Configure alert</a>
-          </OverflowMenu>
-        {/if}
+          {#if pageData.alerts_available}
+            <a href={alertUrl()}>Subscribe to new filings </a>
+          {/if}
+        </OverflowMenu>
       </div>
     </div>
 
@@ -167,6 +192,9 @@ SELECT * FROM final`;
         <a href="{basePath}/candidate/{pageData.candidate?.candidate_id}?cycle={pageData.cycle}">
           {pageData.candidate?.name}
         </a>
+        {#if contestInfo}
+          , running in <a href={contestInfo.href}>{contestInfo.label}</a>
+        {/if}
       </p>
     {:else if committeeTypeLabel}
       <p class="subtitle">{committeeTypeLabel}</p>
@@ -333,16 +361,6 @@ SELECT * FROM final`;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.9rem;
-  }
-
-  .external-link a {
-    color: #0066cc;
-    text-decoration: none;
-    font-size: 0.9rem;
-  }
-
-  .external-link a:hover {
-    text-decoration: underline;
   }
 
   .error-box {

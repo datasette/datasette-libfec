@@ -15,6 +15,7 @@
   import F6 from './forms/F6.svelte';
   import F99 from './forms/F99.svelte';
   import Breadcrumb, { type BreadcrumbItem } from './components/Breadcrumb.svelte';
+  import OverflowMenu from './components/OverflowMenu.svelte';
 
   const pageData = loadPageData<FilingDetailPageData>();
 
@@ -52,7 +53,32 @@
 <div class="filing-detail">
   <div class="header">
     <Breadcrumb items={breadcrumbItems} />
-    <h1>FEC-{filingId} {reportType}</h1>
+    <div class="title-row">
+      <h1>FEC-{filingId} {reportType}</h1>
+      <OverflowMenu>
+        <a
+          href="/{databaseName}/libfec_filings/{filingId}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Row page
+        </a>
+        <a
+          href="https://docquery.fec.gov/cgi-bin/forms/{filingData?.filer_id ?? ''}/{filingId}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View on FEC.gov &rarr;
+        </a>
+        <a
+          href="https://docquery.fec.gov/dcdev/posted/{filingId}.fec"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Download .fec file
+        </a>
+      </OverflowMenu>
+    </div>
     {#if filingData?.filer_name}
       <div class="filer-info">
         <span class="filer-name">
@@ -69,25 +95,6 @@
         {/if}
       </div>
     {/if}
-    <div class="links">
-      <a href="/{databaseName}/libfec_filings/{filingId}" target="_blank" rel="noopener noreferrer">
-        Row page
-      </a>
-      <a
-        href="https://docquery.fec.gov/cgi-bin/forms/{filingData?.filer_id ?? ''}/{filingId}"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        fec.gov →
-      </a>
-      <a
-        href="https://docquery.fec.gov/dcdev/posted/{filingId}.fec"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        .fec file
-      </a>
-    </div>
   </div>
 
   <section class="info-section">
@@ -161,9 +168,16 @@
     margin-bottom: 2rem;
   }
 
+  .title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
   .header h1 {
     font-size: 2rem;
-    margin-bottom: 0.5rem;
+    margin: 0;
   }
 
   .filer-info {
@@ -186,31 +200,11 @@
     font-family: monospace;
   }
 
-  .links {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .links a {
-    color: #0066cc;
-    text-decoration: none;
-  }
-
-  .links a:hover {
-    text-decoration: underline;
-  }
-
   .info-section {
     background: white;
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 1.5rem;
-  }
-
-  .info-section h2 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
   }
 
   .form-content h3 {

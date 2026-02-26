@@ -209,62 +209,8 @@ export function SankeyChart(
     if (clickableNode) onClick(clickableNode);
   });
 
-  // Clickable node/link interactivity
-  // ──────────────────────────────────
-  // When `nodeClickable` is provided, nodes and links get interactive hover
-  // effects to signal that they are clickable:
-  //
-  //   Nodes:  cursor: pointer, darken on hover via CSS brightness(0.8) filter
-  //   Links:  cursor: pointer, bold on hover via increased opacity (0.8)
-  //
-  // Hover highlighting is cross-referenced between nodes and links:
-  //   - Hovering a clickable node also highlights all links connected to it
-  //   - Hovering a clickable link also highlights the clickable node at its end
-  //   - On mouse leave, all highlights are cleared
-  //
-  // A link is considered clickable if either its source or target node is
-  // clickable. Clicking a link fires onClick with the first clickable node
-  // found (source preferred over target).
-  if (nodeClickable) {
-    // A link is clickable if either end is a clickable node
-    const isLinkClickable = (d: any) => nodeClickable(d.source) || nodeClickable(d.target);
-
-    // Node hover: darken self + highlight connected links
-    node
-      .style('cursor', (d: any) => (nodeClickable(d) ? 'pointer' : 'default'))
-      .style('transition', 'filter 0.15s ease')
-      .on('mouseenter', function (_event: any, d: any) {
-        if (!nodeClickable(d)) return;
-        d3.select(this).style('filter', 'brightness(0.8)');
-        link.each(function (ld: any) {
-          if (ld.source.id === d.id || ld.target.id === d.id) {
-            d3.select(this).style('opacity', 0.8);
-          }
-        });
-      })
-      .on('mouseleave', function () {
-        d3.select(this).style('filter', null);
-        link.style('opacity', null);
-      });
-
-    // Link hover: bold self + darken the clickable node at its end
-    link
-      .style('cursor', (d: any) => (isLinkClickable(d) ? 'pointer' : 'default'))
-      .style('transition', 'opacity 0.15s ease')
-      .on('mouseenter', function (_event: any, d: any) {
-        if (!isLinkClickable(d)) return;
-        d3.select(this).style('opacity', 0.8);
-        node.each(function (nd: any) {
-          if ((nd.id === d.source.id || nd.id === d.target.id) && nodeClickable(nd)) {
-            d3.select(this).style('filter', 'brightness(0.8)');
-          }
-        });
-      })
-      .on('mouseleave', function () {
-        d3.select(this).style('opacity', null);
-        node.style('filter', null);
-      });
-  }
+  // Clickable node/link/label interactivity is set up after labels are created
+  // (see below) so that hover effects can cross-reference all three elements.
   if (linkColor === 'source-target') {
     link
       .append('linearGradient')
@@ -302,30 +248,95 @@ export function SankeyChart(
     .attr('stroke-width', ({ width }: any) => Math.max(1, width))
     .call(Lt ? (path) => path.append('title').text(({ index: i }: any) => Lt[i] ?? '') : () => {});
 
+  let labelNodes: d3.Selection<SVGGElement, any, SVGGElement, undefined> | undefined;
   if (Tl) {
     const labelGroup = svg.append('g').attr('font-family', 'sans-serif').attr('font-size', 14);
 
-    labelGroup
-      .selectAll('g')
-      .data(nodesArray)
-      .join('g')
-      .each(function (d: any) {
-        const label = Tl[d.index!];
-        const labels = Array.isArray(label) ? label : [label];
-        const lineHeight = 16; // spacing between lines in pixels
-        const totalHeight = labels.length * lineHeight;
-        const startY = (d.y1 + d.y0) / 2 - totalHeight / 2;
+    labelNodes = labelGroup.selectAll('g').data(nodesArray).join('g') as any;
 
-        d3.select(this)
-          .selectAll('text')
-          .data(labels)
-          .join('text')
-          .attr('x', d.x0 < width / 2 ? d.x1 + nodeLabelPadding : d.x0 - nodeLabelPadding)
-          .attr('y', (_: any, i: number) => startY + i * lineHeight)
-          .attr('dy', '0.75em')
-          .attr('text-anchor', d.x0 < width / 2 ? 'start' : 'end')
-          .text((labelText: string) => labelText);
+    labelNodes!.each(function (d: any) {
+      const label = Tl[d.index!];
+      const labels = Array.isArray(label) ? label : [label];
+      const lineHeight = 16; // spacing between lines in pixels
+      const totalHeight = labels.length * lineHeight;
+      const startY = (d.y1 + d.y0) / 2 - totalHeight / 2;
+
+      d3.select(this)
+        .selectAll('text')
+        .data(labels)
+        .join('text')
+        .attr('x', d.x0 < width / 2 ? d.x1 + nodeLabelPadding : d.x0 - nodeLabelPadding)
+        .attr('y', (_: any, i: number) => startY + i * lineHeight)
+        .attr('dy', '0.75em')
+        .attr('text-anchor', d.x0 < width / 2 ? 'start' : 'end')
+        .text((labelText: string) => labelText);
+    });
+  }
+
+  // Set up clickable interactivity for nodes, links, and labels together
+  // so that hover effects can cross-reference all three element types.
+  if (nodeClickable) {
+    const isLinkClickable = (d: any) => nodeClickable(d.source) || nodeClickable(d.target);
+
+    // Node rect hover: darken self + highlight connected links
+    node
+      .style('cursor', (d: any) => (nodeClickable(d) ? 'pointer' : 'default'))
+      .style('transition', 'filter 0.15s ease')
+      .on('mouseenter', function (_event: any, d: any) {
+        if (!nodeClickable(d)) return;
+        d3.select(this).style('filter', 'brightness(0.8)');
+        link.each(function (ld: any) {
+          if (ld.source.id === d.id || ld.target.id === d.id) {
+            d3.select(this).style('opacity', 0.8);
+          }
+        });
+      })
+      .on('mouseleave', function () {
+        d3.select(this).style('filter', null);
+        link.style('opacity', null);
       });
+
+    // Link hover: bold self + darken the clickable node at its end
+    link
+      .style('cursor', (d: any) => (isLinkClickable(d) ? 'pointer' : 'default'))
+      .style('transition', 'opacity 0.15s ease')
+      .on('mouseenter', function (_event: any, d: any) {
+        if (!isLinkClickable(d)) return;
+        d3.select(this).style('opacity', 0.8);
+        node.each(function (nd: any) {
+          if ((nd.id === d.source.id || nd.id === d.target.id) && nodeClickable(nd)) {
+            d3.select(this).style('filter', 'brightness(0.8)');
+          }
+        });
+      })
+      .on('mouseleave', function () {
+        d3.select(this).style('opacity', null);
+        node.style('filter', null);
+      });
+
+    // Label hover: click + cursor:pointer, cross-highlight node rects and links
+    if (labelNodes && onClick) {
+      labelNodes
+        .style('cursor', (d: any) => (nodeClickable(d) ? 'pointer' : 'default'))
+        .on('click', (_event, d) => {
+          if (nodeClickable(d)) onClick(d);
+        })
+        .on('mouseenter', function (_event: any, d: any) {
+          if (!nodeClickable(d)) return;
+          node.each(function (nd: any) {
+            if (nd.id === d.id) d3.select(this).style('filter', 'brightness(0.8)');
+          });
+          link.each(function (ld: any) {
+            if (ld.source.id === d.id || ld.target.id === d.id) {
+              d3.select(this).style('opacity', 0.8);
+            }
+          });
+        })
+        .on('mouseleave', function () {
+          node.style('filter', null);
+          link.style('opacity', null);
+        });
+    }
   }
 
   function intern(value: any) {
