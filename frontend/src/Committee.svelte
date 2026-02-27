@@ -143,7 +143,7 @@ SELECT * FROM final`;
   const alertUrl = $derived(() => {
     const params = new URLSearchParams();
     params.set('filer_id__exact', pageData.committee_id);
-    params.set('table_name', "libfec_filings");
+    params.set('table_name', 'libfec_filings');
     return `/-/${pageData.database_name}/datasette-alerts/new?${params.toString()}`;
   });
 </script>

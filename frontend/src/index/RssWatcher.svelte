@@ -93,7 +93,13 @@
     saving = true;
     const { data } = await client.POST('/{database}/-/api/libfec/rss/config/update', {
       params: { path: { database: dbName } },
-      body: { enabled: !config.enabled },
+      body: {
+        enabled: !config.enabled,
+        interval_seconds: formIntervalSeconds,
+        cover_only: formCoverOnly,
+        state_filter: formStateFilter || null,
+        since_duration: formSinceDuration,
+      },
     });
     if (data) {
       config = data as unknown as RssConfig;

@@ -54,7 +54,15 @@ check:
     just check-frontend
 
 dev *flags:
-  DATASETTE_SECRET=abc123 uv run --group alerts --with datasette-alerts-discord datasette -p 8004 tmp.db {{flags}}
+  DATASETTE_SECRET=abc123 uv run \
+    --group alerts \
+    --with ../datasette-alerts-discord \
+    --with ../datasette-alerts-slack \
+    --with ../datasette-alerts-ntfy \
+      datasette \
+        -p 8004 \
+        tmp.db \
+        {{flags}}
 
 dev-with-hmr *flags:
   DATASETTE_LIBFEC_VITE_PATH=http://localhost:5177/ \
