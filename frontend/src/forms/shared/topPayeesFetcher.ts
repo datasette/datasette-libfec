@@ -19,7 +19,7 @@ export function fetchTopPayees(
 
   const sql = `
     SELECT
-      COALESCE(payee_organization_name, payee_last_name || ', ' || payee_first_name) as payee,
+      COALESCE(NULLIF(payee_organization_name, ''), payee_last_name || COALESCE(', ' || payee_first_name, '')) as payee,
       payee_organization_name,
       payee_last_name,
       SUM(expenditure_amount) as total_amount,
