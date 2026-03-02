@@ -3,6 +3,8 @@
   import { databaseName } from '../../stores';
   import { useQuery } from '../../useQuery.svelte';
   import type { FilingScope } from '../../utils/filingScope';
+  import { fetchFilingIds } from '../../utils/filingScope';
+  import { query } from '../../api';
   import { fetchTopPayees, buildPayeeUrl, type TopPayee } from './topPayeesFetcher';
 
   interface Props {
@@ -17,10 +19,12 @@
   const dbName = get(databaseName);
 
   const payees = useQuery(() => fetchTopPayees(dbName, scope, scheduleFormType));
+  const filingIdsResult = useQuery(() => fetchFilingIds(dbName, scope, query));
 
   $effect(() => {
     scope;
     payees.refetch?.();
+    filingIdsResult.refetch?.();
   });
 
   function usd(value: number | null | undefined, round = false): string {
@@ -30,7 +34,7 @@
   }
 
   function payeeUrl(row: TopPayee): string {
-    return buildPayeeUrl(dbName, scope, row, scheduleFormType);
+    return buildPayeeUrl(dbName, scope, row, scheduleFormType, filingIdsResult.data);
   }
 
   const total = $derived(

@@ -54,11 +54,41 @@ export function filingScopeWhere(scope: FilingScope): {
 /**
  * Returns URL search params for linking to datasette table views.
  * Single mode: filing_id__exact
- * Committee mode: filer_id__exact (best approximation without subquery support)
+ * Committee mode: filing_id__in with resolved filing IDs
  */
-export function filingScopeUrlParams(scope: FilingScope): Record<string, string> {
+export function filingScopeUrlParams(
+  scope: FilingScope,
+  filingIds?: string[]
+): Record<string, string> {
   if (scope.mode === 'single') {
     return { filing_id__exact: scope.filingId };
   }
-  return { filer_id__exact: scope.committeeId };
+  if (filingIds && filingIds.length > 0) {
+    return { filing_id__in: filingIds.join(',') };
+  }
+  return { filer_committee_id_number__exact: scope.committeeId };
+}
+
+/**
+ * Resolves the actual filing IDs for a scope by querying the database.
+ * Single mode: returns [filingId]
+ * Committee mode: runs the non-superseded filings subquery
+ */
+export async function fetchFilingIds(
+  dbName: string,
+  scope: FilingScope,
+  queryFn: (
+    db: string,
+    sql: string,
+    params?: Record<string, string>
+  ) => Promise<{ filing_id: string }[]>
+): Promise<string[]> {
+  if (scope.mode === 'single') {
+    return [scope.filingId];
+  }
+
+  const { where, params } = filingScopeWhere(scope);
+  const sql = `SELECT filing_id FROM libfec_filings WHERE ${where}`;
+  const rows = await queryFn(dbName, sql, params);
+  return rows.map((r) => String(r.filing_id));
 }

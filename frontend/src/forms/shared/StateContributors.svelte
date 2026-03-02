@@ -4,7 +4,13 @@
   import { useQuery } from '../../useQuery.svelte';
   import { getStateName } from '../../utils/stateNames';
   import type { FilingScope } from '../../utils/filingScope';
-  import { fetchStateContributions, buildStateUrl } from './stateContributorsFetcher';
+  import { fetchFilingIds } from '../../utils/filingScope';
+  import { query } from '../../api';
+  import {
+    fetchStateContributions,
+    fetchScopeMetadata,
+    buildStateUrl,
+  } from './stateContributorsFetcher';
 
   interface Props {
     scope: FilingScope;
@@ -17,11 +23,35 @@
   const dbName = get(databaseName);
 
   const contributions = useQuery(() => fetchStateContributions(dbName, scope));
+  const metadata = useQuery(() => fetchScopeMetadata(dbName, scope));
+  const filingIdsResult = useQuery(() => fetchFilingIds(dbName, scope, query));
 
   $effect(() => {
     scope;
     contributions.refetch?.();
+    metadata.refetch?.();
+    filingIdsResult.refetch?.();
   });
+
+  const monthAbbrs = [
+    'Jan.',
+    'Feb.',
+    'Mar.',
+    'Apr.',
+    'May',
+    'Jun.',
+    'Jul.',
+    'Aug.',
+    'Sep.',
+    'Oct.',
+    'Nov.',
+    'Dec.',
+  ];
+
+  function formatDate(dateStr: string): string {
+    const d = new Date(dateStr + 'T00:00:00');
+    return `${monthAbbrs[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+  }
 
   function usd(value: number | null | undefined, round = false): string {
     if (value == null) return '$0';
@@ -30,12 +60,31 @@
   }
 
   function stateUrl(stateCode: string): string {
-    return buildStateUrl(dbName, scope, stateCode, formTypeFilter);
+    return buildStateUrl(dbName, scope, stateCode, formTypeFilter, filingIdsResult.data);
   }
 
   const total = $derived(
     (contributions.data ?? []).reduce((sum, row) => sum + (row.total_contributions || 0), 0)
   );
+  const subtitle = $derived(() => {
+    const m = metadata.data;
+    if (!m?.committee_name) return null;
+    const parts = [`Top individual contributions to ${m.committee_name}`];
+    if (m.coverage_from_date && m.coverage_through_date) {
+      parts[0] += ` between ${formatDate(m.coverage_from_date)} and ${formatDate(m.coverage_through_date)}`;
+    }
+    return parts[0];
+  });
+
+  const sourceNote = $derived(() => {
+    const formType = metadata.data?.form_type;
+    if (!formType) return null;
+    if (formTypeFilter === 'SA11AI') {
+      return `Source: ${formType}, Schedule A, Line 11(a)(i)`;
+    }
+    return `Source: ${formType}, Schedule A`;
+  });
+
   const N = 10;
   const topN = $derived((contributions.data ?? []).slice(0, N));
   const other = $derived(
@@ -53,6 +102,9 @@
 {:else if contributions.data && contributions.data.length > 0}
   <div class="section-box">
     <h4>Individual Contributions by State</h4>
+    {#if subtitle()}
+      <p class="subtitle">{subtitle()}</p>
+    {/if}
     <div class="table-container">
       <table class="data-table">
         <thead>
@@ -95,6 +147,9 @@
       </table>
     </div>
     <p class="info-note">Only includes individuals who have given $200 or more this cycle.</p>
+    {#if sourceNote()}
+      <p class="info-note">{sourceNote()}</p>
+    {/if}
   </div>
 {/if}
 
@@ -109,9 +164,16 @@
   .section-box h4 {
     font-size: 1.25rem;
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin-bottom: 0.25rem;
     padding-bottom: 0.5rem;
     border-bottom: 2px solid #2563eb;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
   }
 
   .table-container {

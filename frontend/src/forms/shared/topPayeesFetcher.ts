@@ -40,9 +40,10 @@ export function buildPayeeUrl(
   dbName: string,
   scope: FilingScope,
   row: TopPayee,
-  scheduleFormType: string
+  scheduleFormType: string,
+  filingIds?: string[]
 ): string {
-  const scopeParams = filingScopeUrlParams(scope);
+  const scopeParams = filingScopeUrlParams(scope, filingIds);
   const params = new URLSearchParams({
     _sort: 'rowid',
     ...scopeParams,

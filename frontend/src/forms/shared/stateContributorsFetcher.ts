@@ -7,6 +7,39 @@ export interface StateContribution {
   total_contributions: number;
 }
 
+export interface ScopeMetadata {
+  committee_name: string | null;
+  coverage_from_date: string | null;
+  coverage_through_date: string | null;
+  form_type: string | null;
+}
+
+export async function fetchScopeMetadata(
+  dbName: string,
+  scope: FilingScope
+): Promise<ScopeMetadata> {
+  const { where, params } = filingScopeWhere(scope);
+
+  const sql = `
+    SELECT
+      MAX(filer_name) as committee_name,
+      MIN(coverage_from_date) as coverage_from_date,
+      MAX(coverage_through_date) as coverage_through_date,
+      MAX(cover_record_form) as form_type
+    FROM libfec_filings
+    WHERE ${where}
+  `;
+  const rows = await query(dbName, sql, params);
+  return (
+    (rows as ScopeMetadata[])[0] ?? {
+      committee_name: null,
+      coverage_from_date: null,
+      coverage_through_date: null,
+      form_type: null,
+    }
+  );
+}
+
 export function fetchStateContributions(
   dbName: string,
   scope: FilingScope
@@ -32,9 +65,10 @@ export function buildStateUrl(
   dbName: string,
   scope: FilingScope,
   stateCode: string,
-  formTypeFilter?: string
+  formTypeFilter?: string,
+  filingIds?: string[]
 ): string {
-  const scopeParams = filingScopeUrlParams(scope);
+  const scopeParams = filingScopeUrlParams(scope, filingIds);
   const params = new URLSearchParams({
     _sort: 'rowid',
     contributor_state__exact: stateCode,
