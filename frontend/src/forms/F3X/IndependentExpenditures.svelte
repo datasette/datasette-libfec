@@ -4,6 +4,8 @@
   import { query } from '../../api';
   import { useQuery } from '../../useQuery.svelte';
   import { getStateName } from '../../utils/stateNames';
+  import type { FilingScope } from '../../utils/filingScope';
+  import { filingScopeWhere, filingScopeUrlParams } from '../../utils/filingScope';
 
   interface CandidateRow {
     support_oppose_code: string;
@@ -32,15 +34,15 @@
   }
 
   interface Props {
-    filingId: string;
+    scope: FilingScope;
   }
 
-  let { filingId }: Props = $props();
+  let { scope }: Props = $props();
 
   const dbName = get(databaseName);
 
   async function fetchCandidates(): Promise<CandidateRow[]> {
-    if (!filingId) return [];
+    const { where, params } = filingScopeWhere(scope);
     const sql = `
       SELECT
         support_oppose_code,
@@ -52,33 +54,33 @@
         SUM(expenditure_amount) as total,
         COUNT(*) as txn_count
       FROM libfec_schedule_e
-      WHERE filing_id = :filing_id
+      WHERE ${where}
         AND (memo_code IS NULL OR memo_code = '')
       GROUP BY support_oppose_code, candidate_last_name, candidate_first_name,
                candidate_office, candidate_state, candidate_district
       ORDER BY total DESC
     `;
-    return query(dbName, sql, { filing_id: filingId });
+    return query(dbName, sql, params);
   }
 
   async function fetchPurposes(): Promise<PurposeRow[]> {
-    if (!filingId) return [];
+    const { where, params } = filingScopeWhere(scope);
     const sql = `
       SELECT
         expenditure_purpose_descrip,
         SUM(expenditure_amount) as total,
         COUNT(*) as txn_count
       FROM libfec_schedule_e
-      WHERE filing_id = :filing_id
+      WHERE ${where}
         AND (memo_code IS NULL OR memo_code = '')
       GROUP BY expenditure_purpose_descrip
       ORDER BY total DESC
     `;
-    return query(dbName, sql, { filing_id: filingId });
+    return query(dbName, sql, params);
   }
 
   async function fetchPayees(): Promise<PayeeRow[]> {
-    if (!filingId) return [];
+    const { where, params } = filingScopeWhere(scope);
     const sql = `
       SELECT
         COALESCE(payee_organization_name, payee_last_name || ', ' || payee_first_name) as payee,
@@ -88,18 +90,25 @@
         COUNT(*) as txn_count,
         GROUP_CONCAT(DISTINCT expenditure_purpose_descrip) as purposes
       FROM libfec_schedule_e
-      WHERE filing_id = :filing_id
+      WHERE ${where}
         AND (memo_code IS NULL OR memo_code = '')
       GROUP BY payee
       ORDER BY total DESC
       LIMIT 15
     `;
-    return query(dbName, sql, { filing_id: filingId });
+    return query(dbName, sql, params);
   }
 
   const candidates = useQuery(fetchCandidates);
   const purposes = useQuery(fetchPurposes);
   const payees = useQuery(fetchPayees);
+
+  $effect(() => {
+    scope;
+    candidates.refetch?.();
+    purposes.refetch?.();
+    payees.refetch?.();
+  });
 
   function usd(value: number | null | undefined, round = false): string {
     if (value == null) return '$0';
@@ -119,13 +128,14 @@
     return office;
   }
 
-  function scheduleEUrl(params?: Record<string, string>): string {
+  function scheduleEUrl(extraParams?: Record<string, string>): string {
+    const scopeParams = filingScopeUrlParams(scope);
     const base = new URLSearchParams({
       _sort: 'rowid',
-      filing_id__exact: filingId,
+      ...scopeParams,
     });
-    if (params) {
-      for (const [k, v] of Object.entries(params)) {
+    if (extraParams) {
+      for (const [k, v] of Object.entries(extraParams)) {
         base.set(k, v);
       }
     }

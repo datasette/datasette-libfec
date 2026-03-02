@@ -503,11 +503,13 @@ async def committee_page(datasette, request, database: str, committee_id: str):
     try:
         db = datasette.databases[database]
 
-        # Fetch committee from database
+        # Fetch committee from database (prefer requested cycle, fall back to any)
         committee_result = await db.execute(
             """
             SELECT * FROM libfec_committees
-            WHERE committee_id = ? AND cycle = ?
+            WHERE committee_id = ?
+            ORDER BY CASE WHEN cycle = ? THEN 0 ELSE 1 END, cycle DESC
+            LIMIT 1
             """,
             [committee_id, cycle],
         )
@@ -521,7 +523,9 @@ async def committee_page(datasette, request, database: str, committee_id: str):
             candidate_result = await db.execute(
                 """
                 SELECT * FROM libfec_candidates
-                WHERE candidate_id = ? AND cycle = ?
+                WHERE candidate_id = ?
+                ORDER BY CASE WHEN cycle = ? THEN 0 ELSE 1 END, cycle DESC
+                LIMIT 1
                 """,
                 [candidate_id, cycle],
             )

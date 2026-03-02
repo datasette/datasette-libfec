@@ -1,42 +1,27 @@
 <script lang="ts">
   import { get } from 'svelte/store';
   import { databaseName } from '../../stores';
-  import { query } from '../../api';
   import { useQuery } from '../../useQuery.svelte';
   import { getStateName } from '../../utils/stateNames';
-
-  interface StateContribution {
-    contributor_state: string;
-    total_contributions: number;
-  }
+  import type { FilingScope } from '../../utils/filingScope';
+  import { fetchStateContributions, buildStateUrl } from './stateContributorsFetcher';
 
   interface Props {
-    filingId: string;
+    scope: FilingScope;
+    homeState?: string | null;
+    formTypeFilter?: string;
   }
 
-  let { filingId }: Props = $props();
+  let { scope, homeState = null, formTypeFilter }: Props = $props();
 
   const dbName = get(databaseName);
 
-  async function fetchStateContributions(): Promise<StateContribution[]> {
-    if (!filingId) return [];
+  const contributions = useQuery(() => fetchStateContributions(dbName, scope));
 
-    const sql = `
-      SELECT
-        contributor_state,
-        SUM(contribution_amount) as total_contributions
-      FROM libfec_schedule_a
-      WHERE filing_id = :filing_id
-        AND contributor_state IS NOT NULL
-        AND contributor_state != ''
-        AND memo_code != 'X'
-      GROUP BY contributor_state
-      ORDER BY total_contributions DESC
-    `;
-    return query(dbName, sql, { filing_id: filingId });
-  }
-
-  const contributions = useQuery(fetchStateContributions);
+  $effect(() => {
+    scope;
+    contributions.refetch?.();
+  });
 
   function usd(value: number | null | undefined, round = false): string {
     if (value == null) return '$0';
@@ -45,13 +30,7 @@
   }
 
   function stateUrl(stateCode: string): string {
-    const params = new URLSearchParams({
-      _sort: 'rowid',
-      contributor_state__exact: stateCode,
-      filing_id__exact: filingId,
-      memo_code__not: 'X',
-    });
-    return `/${dbName}/libfec_schedule_a?${params}`;
+    return buildStateUrl(dbName, scope, stateCode, formTypeFilter);
   }
 
   const total = $derived(
@@ -88,6 +67,9 @@
             <tr>
               <td>
                 <a href={stateUrl(row.contributor_state)}>{getStateName(row.contributor_state)}</a>
+                {#if homeState && row.contributor_state === homeState}
+                  <span class="home-badge">Home</span>
+                {/if}
               </td>
               <td class="text-right">{usd(row.total_contributions, true)}</td>
               <td class="text-right muted">
@@ -172,6 +154,17 @@
 
   .italic {
     font-style: italic;
+  }
+
+  .home-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.1rem 0.4rem;
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 3px;
   }
 
   .other-row td {

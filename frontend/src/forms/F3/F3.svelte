@@ -2,8 +2,8 @@
   import { F3SankeyComponent, type InputRow } from '../../components/sankey';
   import SummaryCards from '../../components/SummaryCards.svelte';
   import FilingNav from '../../components/FilingNav.svelte';
-  import StateContributors from './StateContributors.svelte';
-  import TopPayees from './TopPayees.svelte';
+  import StateContributors from '../shared/StateContributors.svelte';
+  import TopPayees from '../shared/TopPayees.svelte';
   import RelatedF3Reports from './RelatedF3Reports.svelte';
   import { getReportLabel } from '../../utils/reportCodes';
 
@@ -173,10 +173,19 @@
     <!-- Schedule Data -->
     <div class="schedule-row">
       <div class="schedule-col-1">
-        <StateContributors {filingId} {homeState} />
+        <StateContributors
+          scope={{ mode: 'single', filingId }}
+          {homeState}
+          formTypeFilter="SA11AI"
+        />
       </div>
       <div class="schedule-col-2">
-        <TopPayees {filingId} />
+        <TopPayees
+          scope={{ mode: 'single', filingId }}
+          scheduleFormType="SB17"
+          title="Top Expenditure Payees"
+          infoNote="Only includes operating expenditures $200 or more."
+        />
       </div>
     </div>
 

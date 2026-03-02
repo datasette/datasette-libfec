@@ -5,8 +5,8 @@
   import { getReportLabel } from '../../utils/reportCodes';
   import F3XSummaryTable from './F3XSummaryTable.svelte';
   import IndependentExpenditures from './IndependentExpenditures.svelte';
-  import StateContributors from './StateContributors.svelte';
-  import TopPayees from './TopPayees.svelte';
+  import StateContributors from '../shared/StateContributors.svelte';
+  import TopPayees from '../shared/TopPayees.svelte';
 
   interface Props {
     formData: any;
@@ -51,15 +51,20 @@
     <!-- Schedule Data -->
     <div class="schedule-row">
       <div class="schedule-col-1">
-        <StateContributors {filingId} />
+        <StateContributors scope={{ mode: 'single', filingId }} />
       </div>
       <div class="schedule-col-2">
-        <TopPayees {filingId} />
+        <TopPayees
+          scope={{ mode: 'single', filingId }}
+          scheduleFormType="SB21B"
+          title="Top Operating Expense Payees"
+          infoNote="Only includes other federal operating expenditures (Line 21b) of $200 or more."
+        />
       </div>
     </div>
 
     <!-- Independent Expenditures -->
-    <IndependentExpenditures {filingId} />
+    <IndependentExpenditures scope={{ mode: 'single', filingId }} />
 
     <!-- Financial Summary Table -->
     <div class="section-box">

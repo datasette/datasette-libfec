@@ -7,7 +7,12 @@
   import { useQuery } from './useQuery.svelte';
   import Breadcrumb, { type BreadcrumbItem } from './components/Breadcrumb.svelte';
   import CommitteeSankey from './components/CommitteeSankey.svelte';
+  import SummaryCards from './components/SummaryCards.svelte';
   import OverflowMenu from './components/OverflowMenu.svelte';
+  import type { FilingScope } from './utils/filingScope';
+  import StateContributors from './forms/shared/StateContributors.svelte';
+  import TopPayees from './forms/shared/TopPayees.svelte';
+  import IndependentExpenditures from './forms/F3X/IndependentExpenditures.svelte';
 
   const pageData = loadPageData<CommitteePageData>();
   databaseNameStore.set(pageData.database_name);
@@ -105,6 +110,87 @@ SELECT * FROM final`;
     const url = new URL(window.location.href);
     url.searchParams.set('cycle', String(selectedCycle));
     window.history.replaceState({}, '', url.toString());
+  });
+
+  // Determine F3 vs F3X based on committee type
+  const committeeType = pageData.committee?.committee_type;
+  const isF3Committee = committeeType ? ['H', 'S', 'P'].includes(committeeType) : false;
+  const formType = isF3Committee ? 'F3' : 'F3X';
+  const formTable = isF3Committee ? 'libfec_F3' : 'libfec_F3X';
+  const cashStartCol = isF3Committee
+    ? 'col_a_cash_beginning_reporting_period'
+    : 'col_a_cash_on_hand_beginning_period';
+
+  // Construct filing scope for subcomponents — reactive to cycle changes
+  const committeeScope: FilingScope = $derived({
+    mode: 'committee' as const,
+    committeeId: pageData.committee_id,
+    formType: formType as 'F3' | 'F3X',
+    cycle: selectedCycle,
+  });
+
+  // Fetch summary data (aggregated across non-superseded filings for the cycle)
+  async function fetchSummary() {
+    const year1 = String(selectedCycle - 1);
+    const year2 = String(selectedCycle);
+    const sql = `
+WITH all_filings AS (
+  SELECT fil.filing_id, fil.report_id, fil.coverage_from_date, fil.coverage_through_date
+  FROM libfec_filings fil
+  WHERE fil.filer_id = :committee_id
+    AND fil.cover_record_form = :form_type
+    AND strftime('%Y', fil.coverage_through_date) IN (:year1, :year2)
+),
+resolved_filings AS (
+  SELECT *
+  FROM all_filings
+  WHERE filing_id NOT IN (
+    SELECT substr(report_id, 5)
+    FROM all_filings
+    WHERE report_id LIKE 'FEC-%'
+  )
+),
+earliest AS (
+  SELECT f.${cashStartCol} as cash_start
+  FROM resolved_filings rf
+  JOIN ${formTable} f ON rf.filing_id = f.filing_id
+  ORDER BY rf.coverage_from_date ASC
+  LIMIT 1
+),
+latest AS (
+  SELECT f.col_a_cash_on_hand_close_of_period as cash_end
+  FROM resolved_filings rf
+  JOIN ${formTable} f ON rf.filing_id = f.filing_id
+  ORDER BY rf.coverage_through_date DESC
+  LIMIT 1
+),
+final AS (
+  SELECT
+    MIN(rf.coverage_from_date) as from_date,
+    MAX(rf.coverage_through_date) as through_date,
+    COUNT(*) as filing_count,
+    (SELECT cash_start FROM earliest) as cash_start,
+    (SELECT cash_end FROM latest) as cash_end,
+    SUM(f.col_a_total_receipts) as total_receipts,
+    SUM(f.col_a_total_disbursements) as total_disbursements
+  FROM resolved_filings rf
+  JOIN ${formTable} f ON rf.filing_id = f.filing_id
+)
+SELECT * FROM final`;
+    const rows = await query(pageData.database_name, sql, {
+      committee_id: pageData.committee_id,
+      form_type: formType,
+      year1,
+      year2,
+    });
+    return (rows as any[])[0] ?? null;
+  }
+
+  const summaryResult = useQuery(fetchSummary);
+
+  $effect(() => {
+    selectedCycle;
+    summaryResult.refetch?.();
   });
 
   // Build breadcrumb items
@@ -221,6 +307,48 @@ SELECT * FROM final`;
       databaseName={pageData.database_name}
       {selectedCycle}
     />
+  {/if}
+
+  {#if committeeType && summaryResult.data && summaryResult.data.filing_count > 0}
+    <section class="schedule-section">
+      <p class="coverage-label">
+        Across {summaryResult.data.filing_count} filing{summaryResult.data.filing_count === 1
+          ? ''
+          : 's'},
+        {summaryResult.data.from_date} to {summaryResult.data.through_date}
+      </p>
+
+      <SummaryCards
+        cashStart={summaryResult.data.cash_start}
+        receipts={summaryResult.data.total_receipts}
+        disbursements={summaryResult.data.total_disbursements}
+        cashEnd={summaryResult.data.cash_end}
+      />
+
+      <div class="schedule-row">
+        <div class="schedule-col-1">
+          <StateContributors
+            scope={committeeScope}
+            formTypeFilter={isF3Committee ? 'SA11AI' : undefined}
+            homeState={isF3Committee ? pageData.candidate?.state : undefined}
+          />
+        </div>
+        <div class="schedule-col-2">
+          <TopPayees
+            scope={committeeScope}
+            scheduleFormType={isF3Committee ? 'SB17' : 'SB21B'}
+            title={isF3Committee ? 'Top Expenditure Payees' : 'Top Operating Expense Payees'}
+            infoNote={isF3Committee
+              ? 'Only includes operating expenditures $200 or more.'
+              : 'Only includes other federal operating expenditures (Line 21b) of $200 or more.'}
+          />
+        </div>
+      </div>
+
+      {#if !isF3Committee}
+        <IndependentExpenditures scope={committeeScope} />
+      {/if}
+    </section>
   {/if}
 
   {#if pageData.filings && pageData.filings.length > 0}
@@ -377,6 +505,38 @@ SELECT * FROM final`;
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 1.5rem;
+  }
+
+  .schedule-section {
+    margin-bottom: 2rem;
+  }
+
+  .coverage-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 1rem;
+  }
+
+  .schedule-row {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .schedule-col-1 {
+    flex: 2;
+    min-width: 0;
+  }
+
+  .schedule-col-2 {
+    flex: 3;
+    min-width: 0;
+  }
+
+  @media (max-width: 1024px) {
+    .schedule-row {
+      flex-direction: column;
+    }
   }
 
   .filings-section {

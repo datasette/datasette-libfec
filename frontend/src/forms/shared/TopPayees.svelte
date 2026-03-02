@@ -1,48 +1,27 @@
 <script lang="ts">
   import { get } from 'svelte/store';
   import { databaseName } from '../../stores';
-  import { query } from '../../api';
   import { useQuery } from '../../useQuery.svelte';
-
-  interface TopPayee {
-    payee: string;
-    payee_organization_name: string | null;
-    payee_last_name: string | null;
-    total_amount: number;
-    purposes: string;
-  }
+  import type { FilingScope } from '../../utils/filingScope';
+  import { fetchTopPayees, buildPayeeUrl, type TopPayee } from './topPayeesFetcher';
 
   interface Props {
-    filingId: string;
+    scope: FilingScope;
+    scheduleFormType: string;
+    title: string;
+    infoNote: string;
   }
 
-  let { filingId }: Props = $props();
+  let { scope, scheduleFormType, title, infoNote }: Props = $props();
 
   const dbName = get(databaseName);
 
-  async function fetchTopPayees(): Promise<TopPayee[]> {
-    if (!filingId) return [];
+  const payees = useQuery(() => fetchTopPayees(dbName, scope, scheduleFormType));
 
-    const sql = `
-      SELECT
-        COALESCE(payee_organization_name, payee_last_name || ', ' || payee_first_name) as payee,
-        payee_organization_name,
-        payee_last_name,
-        SUM(expenditure_amount) as total_amount,
-        GROUP_CONCAT(DISTINCT expenditure_purpose_descrip) as purposes
-      FROM libfec_schedule_b
-      WHERE 
-        filing_id = :filing_id 
-        AND form_type = 'SB17'
-        AND memo_code != 'X'
-      GROUP BY payee
-      ORDER BY total_amount DESC
-      LIMIT 20
-    `;
-    return query(dbName, sql, { filing_id: filingId });
-  }
-
-  const payees = useQuery(fetchTopPayees);
+  $effect(() => {
+    scope;
+    payees.refetch?.();
+  });
 
   function usd(value: number | null | undefined, round = false): string {
     if (value == null) return '$0';
@@ -51,17 +30,7 @@
   }
 
   function payeeUrl(row: TopPayee): string {
-    const params = new URLSearchParams({
-      _sort: 'rowid',
-      filing_id__exact: filingId,
-    });
-    if (row.payee_organization_name) {
-      params.set('payee_organization_name__exact', row.payee_organization_name);
-    } else if (row.payee_last_name) {
-      params.set('payee_last_name__exact', row.payee_last_name);
-    }
-    params.set('form_type__exact', 'SB17');
-    return `/${dbName}/libfec_schedule_b?${params}`;
+    return buildPayeeUrl(dbName, scope, row, scheduleFormType);
   }
 
   const total = $derived(
@@ -75,12 +44,12 @@
 
 {#if payees.isLoading}
   <div class="section-box">
-    <h4>Top Expenditure Payees</h4>
+    <h4>{title}</h4>
     <div class="loading">Loading...</div>
   </div>
 {:else if payees.data && payees.data.length > 0}
   <div class="section-box">
-    <h4>Top Expenditure Payees</h4>
+    <h4>{title}</h4>
     <div class="table-container">
       <table class="data-table">
         <thead>
@@ -123,7 +92,7 @@
         </tbody>
       </table>
     </div>
-    <p class="info-note">Only includes operating expenditures $200 or more.</p>
+    <p class="info-note">{infoNote}</p>
   </div>
 {/if}
 

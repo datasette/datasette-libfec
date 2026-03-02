@@ -83,8 +83,25 @@ def extra_template_vars(datasette):
                 href = datasette.urls.static_plugins("datasette_libfec", file)
                 parts.append(f'<link rel="stylesheet" href="{href}">')
 
-            # part 2, import lists's chunks css files
-            # TODO
+            # part 2, collect CSS from imported chunks (recursive)
+            seen = set()
+
+            def collect_import_css(chunk_key):
+                if chunk_key in seen:
+                    return
+                seen.add(chunk_key)
+                imp_chunk = manifest.get(chunk_key)
+                if not imp_chunk:
+                    return
+                for css in imp_chunk.css or []:
+                    file = str(Path(css).relative_to("static"))
+                    href = datasette.urls.static_plugins("datasette_libfec", file)
+                    parts.append(f'<link rel="stylesheet" href="{href}">')
+                for sub_import in imp_chunk.imports or []:
+                    collect_import_css(sub_import)
+
+            for imp in chunk.imports or []:
+                collect_import_css(imp)
 
             # part 3, entry point script
             # pop first path part which is always "static/"
