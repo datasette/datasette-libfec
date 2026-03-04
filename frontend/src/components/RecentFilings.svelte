@@ -13,6 +13,7 @@
 
   interface Filing {
     filing_id: string;
+    filer_id: string;
     filer_name: string;
     report_code: string;
     cover_record_form: string;
@@ -72,10 +73,10 @@
       <table>
         <thead>
           <tr>
-            <th>Filing ID</th>
+            <th>Filing</th>
             <th>Committee Name</th>
-            <th>Report Type</th>
             <th>Report Code</th>
+            <th>Report Type</th>
             <th>Coverage From</th>
             <th>Coverage Through</th>
           </tr>
@@ -86,10 +87,17 @@
               class="filing-row"
               onclick={() => (window.location.href = `${basePath}/filing/${filing.filing_id}`)}
             >
-              <td class="filing-id">{filing.filing_id}</td>
-              <td>{filing.filer_name}</td>
-              <td>{filing.report_code}</td>
+              <td class="filing-id">FEC-{filing.filing_id}</td>
+              <td
+                ><a
+                  href="{basePath}/{filing.filer_id.startsWith('C')
+                    ? 'committee'
+                    : 'candidate'}/{filing.filer_id}"
+                  onclick={(e: MouseEvent) => e.stopPropagation()}>{filing.filer_name}</a
+                ></td
+              >
               <td class="form-type">{filing.cover_record_form}</td>
+              <td>{filing.report_code}</td>
               <td>{filing.coverage_from_date ? formatDate(filing.coverage_from_date) : ''}</td>
               <td>{filing.coverage_through_date ? formatDate(filing.coverage_through_date) : ''}</td
               >
