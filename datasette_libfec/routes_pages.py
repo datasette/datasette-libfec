@@ -12,20 +12,29 @@ from .router import (
     LIBFEC_WRITE_NAME,
 )
 from .page_data import (
+    AlertDetailLogEntry,
+    AlertDetailPageData,
+    AlertDetailSubscription,
+    AlertsPageData,
     Candidate,
     CandidatePageData,
     Committee,
     CommitteePageData,
     ContestPageData,
+    CronRunData,
+    DestinationOption,
     ExportFilingInfo,
     ExportInputInfo,
     ExportPageData,
+    FecContributorAlertConfig,
+    FecFilingAlertConfig,
     Filing,
     FilingDayPageData,
     FilingDetailPageData,
     IndexPageData,
     ImportPageData,
     RssPageData,
+    WatchlistData,
 )
 
 
@@ -34,7 +43,10 @@ from .page_data import (
 async def libfec_page(datasette, request, database: str):
     db = datasette.databases[database]
     can_write = await datasette.allowed(action=LIBFEC_WRITE_NAME, actor=request.actor)
-    page_data = IndexPageData(database_name=db.name, can_write=can_write)
+    alerts_available = await check_alerts_available(datasette, request.actor)
+    page_data = IndexPageData(
+        database_name=db.name, can_write=can_write, alerts_available=alerts_available
+    )
     return Response.html(
         await datasette.render_template(
             "libfec_base.html",
@@ -567,6 +579,226 @@ async def committee_page(datasette, request, database: str, committee_id: str):
             {
                 "page_title": f"{committee_name} - Committee",
                 "entrypoint": "src/committee_view.ts",
+                "page_data": page_data.model_dump(),
+            },
+        )
+    )
+
+
+@router.GET("/(?P<database>[^/]+)/-/libfec/alerts$")
+@check_permission()
+async def alerts_page(datasette, request, database: str):
+    """
+    Alerts configuration page for managing FEC watchlists.
+
+    Requires datasette-alerts to be installed for notification delivery.
+    """
+    db = datasette.databases[database]
+    alerts_available = await check_alerts_available(datasette, request.actor)
+
+    # Fetch destinations from datasette-alerts
+    destinations: list[DestinationOption] = []
+    if alerts_available:
+        try:
+            from datasette_alerts.internal_db import InternalDB  # type: ignore[import-not-found]
+
+            da_db = InternalDB(datasette.get_internal_database())
+            dests = await da_db.list_destinations()  # type: ignore[unresolved-attribute]
+            destinations = [
+                DestinationOption(id=d.id, label=d.label, notifier=d.notifier)
+                for d in dests
+            ]
+        except (ImportError, Exception):
+            pass
+
+    # Fetch custom FEC alerts from datasette-alerts
+    watchlists: list[WatchlistData] = []
+    if alerts_available:
+        try:
+            all_alerts = await da_db.get_all_alerts()
+            dest_labels = {d.id: d.label for d in destinations}
+            for a in all_alerts:
+                at = a.alert_type
+                if not at.startswith("custom:fec-") or a.database_name != db.name:
+                    continue
+                slug = at.split(":", 1)[1]  # "fec-filing" or "fec-contributor"
+                import json as _json
+
+                raw_config = _json.loads(a.custom_config or "{}")
+                # Look up destination from subscriptions
+                subs = await da_db.alert_subscriptions(a.id)
+                dest_id: str = (subs[0].destination_id or "") if subs else ""
+                dest_label: str = dest_labels.get(dest_id) or ""
+                if slug == "fec-filing":
+                    parsed = FecFilingAlertConfig(**raw_config)
+                    watchlists.append(
+                        WatchlistData(
+                            id=a.id,
+                            name=slug,
+                            watchlist_type=slug.replace("fec-", ""),
+                            destination_id=dest_id,
+                            destination_label=dest_label,
+                            enabled=True,
+                            committee_ids=parsed.committee_ids,
+                            races=parsed.races,
+                        )
+                    )
+                elif slug == "fec-contributor":
+                    parsed = FecContributorAlertConfig(**raw_config)
+                    watchlists.append(
+                        WatchlistData(
+                            id=a.id,
+                            name=slug,
+                            watchlist_type=slug.replace("fec-", ""),
+                            destination_id=dest_id,
+                            destination_label=dest_label,
+                            enabled=True,
+                            contributors=parsed.contributors,
+                        )
+                    )
+        except Exception:
+            pass
+
+    page_data = AlertsPageData(
+        database_name=db.name,
+        alerts_available=alerts_available,
+        destinations=destinations,
+        watchlists=watchlists,
+        recent_alerts=[],
+        prefill_committee_id=request.args.get("committee_id"),
+        prefill_template=request.args.get("template"),
+    )
+    return Response.html(
+        await datasette.render_template(
+            "libfec_base.html",
+            {
+                "page_title": "Alerts",
+                "entrypoint": "src/alerts_view.ts",
+                "page_data": page_data.model_dump(),
+            },
+        )
+    )
+
+
+@router.GET("/(?P<database>[^/]+)/-/libfec/alerts/(?P<alert_id>[^/]+)$")
+@check_permission()
+async def alert_detail_page(datasette, request, database: str, alert_id: str):
+    """Detail page for a single FEC alert/watchlist."""
+    import json as _json
+
+    db = datasette.databases[database]
+
+    try:
+        from datasette_alerts.internal_db import InternalDB
+    except ImportError:
+        return Response.text("datasette-alerts not installed", status=400)
+
+    da_db = InternalDB(datasette.get_internal_database())
+    alert = await da_db.get_alert_detail(alert_id)
+    if alert is None:
+        return Response.text("Alert not found", status=404)
+
+    raw_config = _json.loads(alert.custom_config or "{}")
+    alert_type = alert.alert_type
+    slug = alert_type.split(":", 1)[1] if ":" in alert_type else alert_type
+
+    type_labels = {"fec-filing": "Filing Alert", "fec-contributor": "Contributor Alert"}
+    type_label = type_labels.get(slug, slug)
+
+    # Describe what it's watching
+    criteria_parts: list[str] = []
+    if slug == "fec-filing":
+        typed = FecFilingAlertConfig(**raw_config)
+        if typed.committee_ids:
+            criteria_parts.append(f"Committees: {', '.join(typed.committee_ids)}")
+        for r in typed.races:
+            criteria_parts.append(f"Race: {r.office} {r.state} {r.district} {r.cycle}")
+        if typed.state_filter:
+            criteria_parts.append(f"State filter: {typed.state_filter}")
+    elif slug == "fec-contributor":
+        typed_c = FecContributorAlertConfig(**raw_config)
+        for c in typed_c.contributors:
+            parts = [p for p in [c.first_name, c.last_name] if p]
+            if c.state:
+                parts.append(f"({c.state})")
+            criteria_parts.append(f"Contributor: {' '.join(parts)}")
+    if not criteria_parts:
+        criteria_parts.append("All filings (no filter)")
+
+    # Cron stats
+    total_runs = 0
+    success_runs = 0
+    error_runs = 0
+    cron_runs: list[CronRunData] = []
+    try:
+        scheduler = datasette._cron_scheduler
+        task = await scheduler.internal_db.get_task(f"alerts:custom:{alert_id}")
+        if task:
+            all_runs = await scheduler.internal_db.get_runs(
+                f"alerts:custom:{alert_id}", limit=10000
+            )
+            total_runs = len(all_runs)
+            success_runs = sum(1 for r in all_runs if r.status == "success")
+            error_runs = sum(1 for r in all_runs if r.status == "error")
+            cron_runs = [
+                CronRunData(
+                    started_at=r.started_at,
+                    status=r.status,
+                    duration_ms=r.duration_ms,
+                    error_message=r.error_message,
+                )
+                for r in all_runs[:20]
+            ]
+    except Exception:
+        pass
+
+    # Queue stats
+    queue_pending = 0
+    queue_done = 0
+    try:
+        result = await db.execute(
+            "SELECT status, count(*) FROM libfec_alert_queue GROUP BY status"
+        )
+        for row in result.rows:
+            if row[0] == "pending":
+                queue_pending = row[1]
+            elif row[0] == "done":
+                queue_done = row[1]
+    except Exception:
+        pass
+
+    page_data = AlertDetailPageData(
+        database_name=db.name,
+        alert_id=alert_id,
+        alert_type=alert_type,
+        type_label=type_label,
+        slug=slug,
+        created_at=alert.alert_created_at,
+        frequency=alert.frequency,
+        last_check_at=alert.last_check_at,
+        custom_config=raw_config,
+        criteria=criteria_parts,
+        subscriptions=[
+            AlertDetailSubscription(notifier=s.notifier, destination_label=s.destination_label)
+            for s in alert.subscriptions
+        ],
+        logs=[
+            AlertDetailLogEntry(logged_at=log_entry.logged_at, new_ids=log_entry.new_ids)
+            for log_entry in alert.logs
+        ],
+        cron_runs=cron_runs,
+        total_runs=total_runs,
+        success_runs=success_runs,
+        error_runs=error_runs,
+        queue_pending=queue_pending,
+        queue_done=queue_done,
+    )
+    return Response.html(
+        await datasette.render_template(
+            "libfec_base.html",
+            {
+                "page_title": type_label,
+                "entrypoint": "src/alert_detail_view.ts",
                 "page_data": page_data.model_dump(),
             },
         )

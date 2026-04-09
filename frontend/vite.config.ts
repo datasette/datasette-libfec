@@ -6,12 +6,10 @@ import {compile} from "json-schema-to-typescript";
 // https://vite.dev/config/
 export default defineConfig({
   server: {
-    port: 5177,
     strictPort: true,
     cors: true,
     hmr: {
       host: "localhost",
-      port: 5177,
       protocol: "ws",
     },
   },
@@ -54,6 +52,8 @@ export default defineConfig({
         committee: "src/committee_view.ts",
         export: "src/export_view.ts",
         filing_day: "src/filing_day_view.ts",
+        alerts: "src/alerts_view.ts",
+        alert_detail: "src/alert_detail_view.ts",
       },
     },
   },

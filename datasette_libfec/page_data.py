@@ -1,6 +1,30 @@
 from pydantic import BaseModel
 
 
+class RaceSpec(BaseModel):
+    office: str
+    state: str
+    district: str = ""
+    cycle: int
+
+
+class ContributorCriteria(BaseModel):
+    first_name: str = ""
+    last_name: str = ""
+    city: str = ""
+    state: str = ""
+
+
+class FecFilingAlertConfig(BaseModel):
+    committee_ids: list[str] = []
+    races: list[RaceSpec] = []
+    state_filter: str = ""
+
+
+class FecContributorAlertConfig(BaseModel):
+    contributors: list[ContributorCriteria] = []
+
+
 class Candidate(BaseModel):
     candidate_id: str
     name: str | None = None
@@ -92,6 +116,7 @@ class FilingDetailPageData(BaseModel):
 class IndexPageData(BaseModel):
     database_name: str
     can_write: bool = False
+    alerts_available: bool = False
 
 
 class ImportPageData(BaseModel):
@@ -136,6 +161,79 @@ class ExportPageData(BaseModel):
     error: str | None = None
 
 
+class DestinationOption(BaseModel):
+    id: str
+    label: str
+    notifier: str
+
+
+class WatchlistData(BaseModel):
+    id: str
+    name: str
+    watchlist_type: str
+    destination_id: str
+    destination_label: str = ""
+    enabled: bool = True
+    committee_ids: list[str] = []
+    races: list[RaceSpec] = []
+    contributors: list[ContributorCriteria] = []
+
+
+class AlertLogData(BaseModel):
+    watchlist_name: str | None = None
+    filing_id: str
+    message_text: str | None = None
+    sent_at: str | None = None
+
+
+class AlertsPageData(BaseModel):
+    database_name: str
+    alerts_available: bool = False
+    destinations: list[DestinationOption] = []
+    watchlists: list[WatchlistData] = []
+    recent_alerts: list[AlertLogData] = []
+    prefill_committee_id: str | None = None
+    prefill_template: str | None = None
+
+
+class CronRunData(BaseModel):
+    started_at: str = ""
+    status: str = ""
+    duration_ms: int | None = None
+    error_message: str | None = None
+
+
+class AlertDetailSubscription(BaseModel):
+    notifier: str = ""
+    destination_label: str = ""
+
+
+class AlertDetailLogEntry(BaseModel):
+    logged_at: str = ""
+    new_ids: list[str] = []
+
+
+class AlertDetailPageData(BaseModel):
+    database_name: str
+    alert_id: str
+    alert_type: str = ""
+    type_label: str = ""
+    slug: str = ""
+    created_at: str | None = None
+    frequency: str = ""
+    last_check_at: str | None = None
+    custom_config: dict = {}
+    criteria: list[str] = []
+    subscriptions: list[AlertDetailSubscription] = []
+    logs: list[AlertDetailLogEntry] = []
+    cron_runs: list[CronRunData] = []
+    total_runs: int = 0
+    success_runs: int = 0
+    error_runs: int = 0
+    queue_pending: int = 0
+    queue_done: int = 0
+
+
 class FilingDayPageData(BaseModel):
     database_name: str
     years: list[int] = [
@@ -154,6 +252,7 @@ class FilingDayPageData(BaseModel):
 
 
 __exports__ = [
+    AlertsPageData,
     CandidatePageData,
     CommitteePageData,
     ContestPageData,

@@ -17,11 +17,13 @@ types-watch:
     --clear -- \
       just types
 
+DEV_PORT := "5170"
+
 frontend *flags:
     npm run build --prefix frontend {{flags}}
 
 frontend-dev *flags:
-    npm run dev --prefix frontend -- --port 5177 {{flags}}
+    npm run dev --prefix frontend -- --port {{DEV_PORT}} {{flags}}
 
 format-frontend *flags:
     npm run format --prefix frontend {{flags}}
@@ -53,19 +55,28 @@ check:
     just check-backend
     just check-frontend
 
+test *flags:
+    uv run pytest {{flags}}
+
 dev *flags:
   DATASETTE_SECRET=abc123 uv run \
-    --group alerts \
+    --no-cache --group alerts \
+    --with ../datasette-sidebar \
+    --with ../datasette-alerts \
+    --with ../datasette-cron \
     --with ../datasette-alerts-discord \
     --with ../datasette-alerts-slack \
     --with ../datasette-alerts-ntfy \
       datasette \
-        -p 8004 \
-        tmp.db \
+        -s permissions.datasette_libfec_access true \
+        -s permissions.datasette-sidebar-access true \
+        -s permissions.datasette_libfec_write true \
+        -s permissions.datasette-alerts-access true \
+        -s permissions.datasette-cron-access true \
         {{flags}}
 
 dev-with-hmr *flags:
-  DATASETTE_LIBFEC_VITE_PATH=http://localhost:5177/ \
+  DATASETTE_LIBFEC_VITE_PATH=http://localhost:{{DEV_PORT}}/ \
   watchexec \
     --stop-signal SIGKILL \
     -e py,html \

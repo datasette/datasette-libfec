@@ -71,7 +71,7 @@ async def export_start(
 @router.GET("/(?P<database>[^/]+)/-/api/libfec/export/status", output=ExportResponse)
 @check_permission()
 async def export_status(datasette, request, database: str):
-    response_data = {
+    response_data: dict[str, object] = {
         "status": "success",
         "message": "Export status",
         "export_id": export_state.export_id,
