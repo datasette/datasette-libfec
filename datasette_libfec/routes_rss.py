@@ -1,4 +1,4 @@
-"""RSS watcher API routes."""
+"""RSS watcher API routes — reads progress from internal DB, controls cron task."""
 
 from pydantic import BaseModel
 from datasette import Response
@@ -6,7 +6,6 @@ from datasette_plugin_router import Body
 from typing import Optional
 
 from .router import router, check_permission, check_write_permission
-from .rss_watcher import rss_watcher
 from .internal_db import InternalDB
 
 
@@ -73,24 +72,50 @@ class RssFilingRecord(BaseModel):
     export_message: Optional[str] = None
 
 
+def _seconds_until(next_run_at: str | None) -> int | None:
+    if not next_run_at:
+        return None
+    from datetime import datetime, timezone
+
+    try:
+        nxt = datetime.fromisoformat(next_run_at)
+        if nxt.tzinfo is None:
+            nxt = nxt.replace(tzinfo=timezone.utc)
+        remaining = (nxt - datetime.now(timezone.utc)).total_seconds()
+        return max(0, int(remaining))
+    except Exception:
+        return None
+
+
 @router.GET("/(?P<database>[^/]+)/-/api/libfec/rss/status$", output=RssStatusResponse)
 @check_permission()
 async def rss_status(datasette, request, database: str):
-    rss_watcher.ensure_started()
-
     internal = InternalDB(datasette.get_internal_database())
     config = await internal.get_rss_config()
+    progress = await internal.get_rss_progress()
+
+    # Get cron task state for next_run_at
+    next_run_at = None
+    task_enabled = config.enabled
+    try:
+        scheduler = datasette._cron_scheduler
+        task = await scheduler.internal_db.get_task("libfec:rss-sync")
+        if task:
+            next_run_at = task.next_run_at
+            task_enabled = bool(task.enabled)
+    except Exception:
+        pass
 
     return Response.json(
         RssStatusResponse(
-            enabled=config.enabled,
-            running=rss_watcher.is_running() and config.enabled,
-            phase=rss_watcher.phase,
+            enabled=task_enabled,
+            running=progress.get("phase") == "syncing",
+            phase=progress.get("phase", "idle"),
             interval_seconds=config.interval_seconds,
-            seconds_until_next_sync=rss_watcher.seconds_until_next_sync(),
-            exported_count=rss_watcher.exported_count,
-            total_count=rss_watcher.total_count,
-            error_message=rss_watcher.error_message,
+            seconds_until_next_sync=_seconds_until(next_run_at),
+            exported_count=progress.get("exported_count", 0),
+            total_count=progress.get("total_count", 0),
+            error_message=progress.get("error_message"),
         ).model_dump()
     )
 
@@ -120,9 +145,23 @@ async def rss_config_update(
     internal = InternalDB(datasette.get_internal_database())
     config = await internal.update_rss_config(**updates)
 
-    # Ensure watcher loop is started and wake it to pick up changes immediately
-    rss_watcher.ensure_started()
-    rss_watcher.wake()
+    # Sync cron task with new config
+    try:
+        scheduler = datasette._cron_scheduler
+        if config.enabled:
+            await scheduler.add_task(
+                name="libfec:rss-sync",
+                handler="libfec:rss-sync",
+                schedule={"interval": config.interval_seconds},
+                config={},
+                overlap="skip",
+            )
+            await scheduler.enable_task("libfec:rss-sync")
+            await scheduler.trigger_task("libfec:rss-sync")
+        else:
+            await scheduler.disable_task("libfec:rss-sync")
+    except Exception:
+        pass
 
     return Response.json(config.model_dump())
 
@@ -133,7 +172,6 @@ async def rss_syncs(datasette, request, database: str):
     """List recent sync attempts from libfec_rss_syncs table."""
     db = datasette.databases[database]
 
-    # Check if table exists
     tables = await db.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='libfec_rss_syncs'"
     )
@@ -152,7 +190,6 @@ async def rss_syncs(datasette, request, database: str):
     """)
 
     syncs = [_parse_sync_row(row) for row in result.rows]
-
     return Response.json({"syncs": syncs})
 
 

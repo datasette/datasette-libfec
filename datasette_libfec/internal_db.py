@@ -70,3 +70,47 @@ class InternalDB:
 
         await self.db.execute_write_fn(write)
         return await self.get_rss_config()
+
+    async def get_rss_progress(self) -> dict:
+        def read(conn):
+            row = conn.execute(
+                "SELECT phase, exported_count, total_count, current_filing_id, "
+                "feed_title, feed_last_modified, error_message, error_code, "
+                "sync_started_at, sync_finished_at "
+                "FROM datasette_libfec_rss_progress WHERE id = 1"
+            ).fetchone()
+            if row is None:
+                return {"phase": "idle"}
+            return {
+                "phase": row[0],
+                "exported_count": row[1],
+                "total_count": row[2],
+                "current_filing_id": row[3],
+                "feed_title": row[4],
+                "feed_last_modified": row[5],
+                "error_message": row[6],
+                "error_code": row[7],
+                "sync_started_at": row[8],
+                "sync_finished_at": row[9],
+            }
+
+        return await self.db.execute_write_fn(read)
+
+    async def update_rss_progress(self, **kwargs) -> None:
+        def write(conn):
+            allowed = {
+                "phase", "exported_count", "total_count", "current_filing_id",
+                "feed_title", "feed_last_modified", "error_message", "error_code",
+                "sync_started_at", "sync_finished_at",
+            }
+            updates = {k: v for k, v in kwargs.items() if k in allowed}
+            if not updates:
+                return
+            set_parts = [f"{k} = ?" for k in updates]
+            set_parts.append("updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now')")
+            conn.execute(
+                f"UPDATE datasette_libfec_rss_progress SET {', '.join(set_parts)} WHERE id = 1",
+                list(updates.values()),
+            )
+
+        await self.db.execute_write_fn(write)

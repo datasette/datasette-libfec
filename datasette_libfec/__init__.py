@@ -70,13 +70,20 @@ def database_actions(datasette, actor, database):
 
 
 @hookimpl
+def cron_register_handlers(datasette):
+    from .rss_handler import rss_sync_handler
+
+    return {"rss-sync": rss_sync_handler}
+
+
+@hookimpl
 def startup(datasette):
-    """Apply internal migrations and initialize RSS watcher."""
+    """Apply migrations and register cron tasks."""
 
     async def inner():
         from sqlite_utils import Database as SqliteUtilsDatabase
         from .internal_migrations import internal_migrations
-        from .rss_watcher import rss_watcher
+        from .internal_db import InternalDB
 
         # Apply internal database migrations
         def migrate(connection):
@@ -85,7 +92,26 @@ def startup(datasette):
 
         await datasette.get_internal_database().execute_write_fn(migrate)
 
-        rss_watcher.set_datasette(datasette)
+        # Register RSS sync cron task from saved config
+        try:
+            internal_db = InternalDB(datasette.get_internal_database())
+            rss_config = await internal_db.get_rss_config()
+            scheduler = datasette._cron_scheduler
+            await scheduler.add_task(
+                name="libfec:rss-sync",
+                handler="libfec:rss-sync",
+                schedule={"interval": rss_config.interval_seconds},
+                config={},
+                overlap="skip",
+            )
+            if not rss_config.enabled:
+                await scheduler.disable_task("libfec:rss-sync")
+        except Exception as e:
+            import logging
+
+            logging.getLogger("datasette_libfec").warning(
+                "Failed to register RSS cron task: %s", e
+            )
 
         # Ensure alert queue table + trigger exist in DBs that have libfec_filings
         from .alert_types import ensure_queue_table
@@ -111,19 +137,6 @@ def datasette_alerts_register_alert_types(datasette):
     from .alert_types import FecFilingAlertType, FecContributorAlertType
 
     return [FecFilingAlertType(), FecContributorAlertType()]
-
-
-@hookimpl
-def shutdown(datasette):
-    """Stop RSS watcher on shutdown."""
-
-    async def inner():
-        from .rss_watcher import rss_watcher
-
-        if rss_watcher.is_running():
-            await rss_watcher.stop()
-
-    return inner
 
 
 try:

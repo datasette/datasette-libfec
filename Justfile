@@ -62,10 +62,6 @@ dev *flags:
   DATASETTE_SECRET=abc123 uv run \
     --no-cache --group alerts \
     --with ../datasette-sidebar \
-    --with ../datasette-alerts \
-    --with ../datasette-cron \
-    --with ../datasette-alerts-discord \
-    --with ../datasette-alerts-slack \
     --with ../datasette-alerts-ntfy \
       datasette \
         -s permissions.datasette_libfec_access true \
