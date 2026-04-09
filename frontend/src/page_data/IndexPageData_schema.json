@@ -8,6 +8,11 @@
       "default": false,
       "title": "Can Write",
       "type": "boolean"
+    },
+    "alerts_available": {
+      "default": false,
+      "title": "Alerts Available",
+      "type": "boolean"
     }
   },
   "required": [

@@ -104,7 +104,7 @@ def test_export_rpc_params_construction():
 
     for input_kwargs, expected_params in test_cases:
         # Build params the same way LibfecExportRpcClient.export_start() does
-        params = {"include_all_bulk": True}
+        params: dict[str, object] = {"include_all_bulk": True}
 
         if input_kwargs.get("filings") is not None:
             params["filings"] = input_kwargs["filings"]
@@ -168,7 +168,7 @@ def test_export_params_match_api_body():
     assert params.clobber is False
 
     # The RPC params constructed would be:
-    rpc_params = {"include_all_bulk": True, "write_metadata": True}
+    rpc_params: dict[str, object] = {"include_all_bulk": True, "write_metadata": True}
     if params.filings:
         rpc_params["filings"] = params.filings
     if params.cycle:

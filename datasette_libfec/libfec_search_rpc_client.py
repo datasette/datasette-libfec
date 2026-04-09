@@ -228,7 +228,7 @@ class LibfecSearchRpcClient:
         Returns:
             Candidate details
         """
-        params = {"candidate_id": candidate_id}
+        params: dict[str, object] = {"candidate_id": candidate_id}
         if cycle is not None:
             params["cycle"] = cycle
 
@@ -247,7 +247,7 @@ class LibfecSearchRpcClient:
         Returns:
             Committee details
         """
-        params = {"committee_id": committee_id}
+        params: dict[str, object] = {"committee_id": committee_id}
         if cycle is not None:
             params["cycle"] = cycle
 

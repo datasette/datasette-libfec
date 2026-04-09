@@ -1,0 +1,204 @@
+{
+  "$defs": {
+    "AlertLogData": {
+      "properties": {
+        "watchlist_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Watchlist Name"
+        },
+        "filing_id": {
+          "title": "Filing Id",
+          "type": "string"
+        },
+        "message_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Text"
+        },
+        "sent_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sent At"
+        }
+      },
+      "required": [
+        "filing_id"
+      ],
+      "title": "AlertLogData",
+      "type": "object"
+    },
+    "DestinationOption": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "notifier": {
+          "title": "Notifier",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "notifier"
+      ],
+      "title": "DestinationOption",
+      "type": "object"
+    },
+    "WatchlistData": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "watchlist_type": {
+          "title": "Watchlist Type",
+          "type": "string"
+        },
+        "destination_id": {
+          "title": "Destination Id",
+          "type": "string"
+        },
+        "destination_label": {
+          "default": "",
+          "title": "Destination Label",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "committee_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Committee Ids",
+          "type": "array"
+        },
+        "races": {
+          "default": [],
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Races",
+          "type": "array"
+        },
+        "contributors": {
+          "default": [],
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Contributors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "watchlist_type",
+        "destination_id"
+      ],
+      "title": "WatchlistData",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "database_name": {
+      "title": "Database Name",
+      "type": "string"
+    },
+    "alerts_available": {
+      "default": false,
+      "title": "Alerts Available",
+      "type": "boolean"
+    },
+    "destinations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/DestinationOption"
+      },
+      "title": "Destinations",
+      "type": "array"
+    },
+    "watchlists": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/WatchlistData"
+      },
+      "title": "Watchlists",
+      "type": "array"
+    },
+    "recent_alerts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AlertLogData"
+      },
+      "title": "Recent Alerts",
+      "type": "array"
+    },
+    "prefill_committee_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Prefill Committee Id"
+    },
+    "prefill_template": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Prefill Template"
+    }
+  },
+  "required": [
+    "database_name"
+  ],
+  "title": "AlertsPageData",
+  "type": "object"
+}

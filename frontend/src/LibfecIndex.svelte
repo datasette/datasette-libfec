@@ -19,6 +19,12 @@
       <h2>Filing Day</h2>
       <p>Compare F3 reports from candidates for a specific reporting period.</p>
     </a>
+    {#if pageData.alerts_available}
+      <a href="{bp}/alerts" class="nav-card">
+        <h2>Alerts</h2>
+        <p>Set up notifications for new filings and contributions.</p>
+      </a>
+    {/if}
   </div>
 
   {#if pageData.can_write}

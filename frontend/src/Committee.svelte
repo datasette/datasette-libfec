@@ -226,12 +226,10 @@ SELECT * FROM final`;
 
   const breadcrumbItems = getBreadcrumbItems();
 
-  const alertUrl = $derived(() => {
-    const params = new URLSearchParams();
-    params.set('filer_id__exact', pageData.committee_id);
-    params.set('table_name', 'libfec_filings');
-    return `/-/${pageData.database_name}/datasette-alerts/new?${params.toString()}`;
-  });
+  const alertUrl = $derived(
+    () =>
+      `${basePath}/alerts?committee_id=${encodeURIComponent(pageData.committee_id)}&template=new_filing`
+  );
 </script>
 
 <div class="committee-page">
@@ -266,7 +264,7 @@ SELECT * FROM final`;
             View on FEC.gov &rarr;
           </a>
           {#if pageData.alerts_available}
-            <a href={alertUrl()}>Subscribe to new filings </a>
+            <a href={alertUrl()}>Set up alert</a>
           {/if}
         </OverflowMenu>
       </div>

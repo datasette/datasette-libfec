@@ -7,9 +7,11 @@
 
 export type DatabaseName = string;
 export type CanWrite = boolean;
+export type AlertsAvailable = boolean;
 
 export interface IndexPageData {
   database_name: DatabaseName;
   can_write?: CanWrite;
+  alerts_available?: AlertsAvailable;
   [k: string]: unknown;
 }
