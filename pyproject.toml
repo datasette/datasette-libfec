@@ -17,6 +17,7 @@ dependencies = [
     "sqlite-migrate>=0.1b0",
     "sqlite-utils>=3.38",
     "python-ulid>=3",
+    "datasette-alerts>=0.0.1a8"
 ]
 
 [dependency-groups]
