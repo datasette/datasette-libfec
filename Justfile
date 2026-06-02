@@ -72,11 +72,12 @@ dev *flags:
         {{flags}}
 
 dev-with-hmr *flags:
-  DATASETTE_LIBFEC_VITE_PATH=http://localhost:{{DEV_PORT}}/ \
   watchexec \
     --stop-signal SIGKILL \
     -e py,html \
     --ignore '*.db' \
     --restart \
     --clear -- \
-    just dev {{flags}}
+    just dev \
+      -s plugins.datasette-vite.dev_ports.datasette_libfec {{DEV_PORT}} \
+      {{flags}}

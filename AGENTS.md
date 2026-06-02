@@ -28,8 +28,9 @@ A Datasette plugin for importing FEC (Federal Election Commission) data using th
 - `POST /-/api/libfec/rss/stop` - Stop RSS watcher
 - `GET /-/api/libfec/rss/status` - Get RSS watcher status
 
+**Dev-mode Vite HMR:** Configured via the `datasette-vite` plugin setting `plugins.datasette-vite.dev_ports.datasette_libfec` (see `just dev-with-hmr`), not an env var.
+
 **Environment Variables:**
-- `DATASETTE_LIBFEC_VITE_PATH` - Points to Vite dev server for HMR (e.g., `http://localhost:5177/`)
 - `DATASETTE_LIBFEC_BIN_PATH` - Override path to libfec binary (defaults to `<python-executable-dir>/libfec`)
 
 ## Frontend
