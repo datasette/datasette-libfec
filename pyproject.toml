@@ -30,6 +30,18 @@ alerts = [
     "datasette-alerts>=0.0.1a8",
 ]
 
+[project.optional-dependencies]
+# `datasette-libfec[paper]` adds datasette-paper so an FEC candidate can be
+# pasted/embedded as a rich block inside a paper document (see paper.py + the
+# frontend paper-embed target). datasette-paper isn't on PyPI yet, so it's
+# resolved from the sibling checkout's built wheel via [tool.uv.sources] below.
+paper = [
+    "datasette-paper>=0.0.2a3",
+]
+
+[tool.uv.sources]
+datasette-paper = { path = "../datasette-paper/dist/datasette_paper-0.0.2a3-py3-none-any.whl" }
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
