@@ -33,14 +33,18 @@ alerts = [
 [project.optional-dependencies]
 # `datasette-libfec[paper]` adds datasette-paper so an FEC candidate can be
 # pasted/embedded as a rich block inside a paper document (see paper.py + the
-# frontend paper-embed target). datasette-paper isn't on PyPI yet, so it's
-# resolved from the sibling checkout's built wheel via [tool.uv.sources] below.
+# frontend paper-embed target). The plugin itself is a no-op without it, so the
+# default install (and CI) never needs this extra.
+#
+# datasette-paper isn't on PyPI yet, so this extra only resolves once it's
+# published or supplied locally, e.g. from a sibling checkout's built wheel:
+#   uv sync --extra paper \
+#     --find-links ../datasette-paper/dist
+# Keep the local wheel path out of committed config so it doesn't break
+# checkouts / CI that lack the sibling directory.
 paper = [
     "datasette-paper>=0.0.2a3",
 ]
-
-[tool.uv.sources]
-datasette-paper = { path = "../datasette-paper/dist/datasette_paper-0.0.2a3-py3-none-any.whl" }
 
 [build-system]
 requires = ["setuptools"]
