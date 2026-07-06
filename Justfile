@@ -41,6 +41,20 @@ format:
     just format-backend
     just format-frontend
 
+# (Re)build the small demo FEC database the doc screenshots run against.
+shots-fixture:
+    bash frontend/scripts/build-fixture.sh
+
+# Regenerate committed doc screenshots → docs/screenshots/*.png. Self-contained:
+# builds the frontend, boots a throwaway datasette against the fixture db, drives
+# Playwright, then tears it down. Run all, or a subset by name:
+#   `just shots`  /  `just shots index contest`.
+shots *names:
+    just frontend
+    npm --prefix frontend install
+    npm --prefix frontend exec -- playwright install chromium
+    node frontend/scripts/screenshots.mjs {{names}}
+
 format-check:
     just format-backend-check
     just format-frontend-check

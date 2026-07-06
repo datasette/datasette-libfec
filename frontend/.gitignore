@@ -25,3 +25,6 @@ dist-ssr
 
 # Vite
 .vite
+
+# Generated screenshot fixture database (rebuild with `just shots-fixture`)
+scripts/shot-data/
