@@ -91,6 +91,8 @@ just types  # Generate frontend/api.d.ts from OpenAPI schema
 | `just format-frontend` | Format frontend code with Prettier |
 | `just dev` | Run Datasette on port 8004 |
 | `just dev-with-hmr` | Run Datasette with HMR + auto-restart on file changes |
+| `just shots-fixture` | (Re)build the demo FEC database used for doc screenshots |
+| `just shots [names...]` | Regenerate committed doc screenshots → `docs/screenshots/*.png` (Playwright drives a throwaway Datasette against the fixture db) |
 
 ## Key Files
 
