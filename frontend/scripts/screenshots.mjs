@@ -12,18 +12,23 @@
 // datasette-paper / datasette-places convention):
 //   * shots/config.mjs     — constants + out(name)
 //   * shots/server.mjs     — boot/teardown of the throwaway datasette
+//   * shots/cookie.mjs     — signed ds_actor cookie (itsdangerous via uv)
+//   * shots/seed.mjs       — seed() the paper-embed doc (paper shot only)
 //   * shots/helpers.mjs    — STABILITY_CSS / freezeVolatile / makeContext
 //   * shots/defineShot.mjs — per-shot context → goto → wait → freeze → capture
 //   * shots/defs/<name>.mjs — ONE FILE PER SHOT, auto-discovered below.
 //
-// libfec's pages are anonymous, read-only views over the fixture db — no cookies
-// or seeding, just open the access gate and browse.
+// libfec specifics: its own pages are anonymous, read-only views over the
+// fixture db (no cookies/seed). The one exception is the `paper` shot, which
+// boots the server with datasette-paper and seeds a document embedding FEC
+// candidates as cards, viewed as a signed-in owner — see shots/seed.mjs.
 import { chromium } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { mkdir, readdir } from 'node:fs/promises';
 import { BASE, OUT, out } from './shots/config.mjs';
 import { startServer, stopServer } from './shots/server.mjs';
+import { seed } from './shots/seed.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -60,10 +65,12 @@ async function main() {
     throw new Error(`unknown shot(s): ${unknown.join(', ')} (have: ${names.join(', ')})`);
   }
   const todo = requested.size ? shots.filter((s) => requested.has(s.name)) : shots;
+  // Only the paper shot needs datasette-paper booted + a seeded doc.
+  const needsPaper = todo.some((s) => s.name === 'paper');
 
   await mkdir(OUT, { recursive: true });
-  console.log(`booting datasette on ${BASE} …`);
-  const server = await startServer();
+  console.log(`booting datasette on ${BASE}${needsPaper ? ' (with paper)' : ''} …`);
+  const server = await startServer(needsPaper);
   const onSignal = () => {
     stopServer(server);
     process.exit(130);
@@ -73,8 +80,9 @@ async function main() {
 
   const browser = await chromium.launch();
   try {
+    const ids = await seed(needsPaper);
     for (const { name, run } of todo) {
-      await run(browser, {});
+      await run(browser, ids);
       console.log(`✓ ${name} → ${out(name)}`);
     }
   } finally {
