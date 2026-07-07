@@ -4,9 +4,23 @@
 // so datasette opens it writable (the plugin's startup hook adds its alert-queue
 // table) without touching the committed fixture. The instance permission gates
 // every libfec page checks are opened globally.
-import { mkdir, copyFile, access } from 'node:fs/promises';
+//
+// The `paper` shot additionally boots with datasette-paper (`--extra paper`,
+// from PyPI) + its permission gates + the actor-name plugin — only when that
+// shot is in the run set, so the other shots stay lightweight.
+import { mkdir, copyFile, access, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
-import { APP, BASE, SECRET, FIXTURE_DB, DATA_DIR, DATA_DB, PORT } from './config.mjs';
+import {
+  APP,
+  BASE,
+  SECRET,
+  FIXTURE_DB,
+  DATA_DIR,
+  DATA_DB,
+  INTERNAL_DB,
+  PLUGINS_DIR,
+  PORT,
+} from './config.mjs';
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -23,8 +37,9 @@ export async function reachable() {
   }
 }
 
-// Fresh mutable copy of the fixture db.
-async function setupDataDb() {
+// Fresh mutable copy of the fixture db. `needsPaper` also wipes the internal DB
+// so the seeded paper doc's id stays deterministic across runs.
+async function setupDataDb(needsPaper) {
   try {
     await access(FIXTURE_DB);
   } catch {
@@ -32,10 +47,33 @@ async function setupDataDb() {
   }
   await mkdir(DATA_DIR, { recursive: true });
   await copyFile(FIXTURE_DB, DATA_DB);
+  if (needsPaper) await rm(INTERNAL_DB, { force: true });
 }
 
-export async function startServer() {
-  await setupDataDb();
+// Extra `uv run` / datasette args that pull in datasette-paper + open its gates.
+// `--extra paper` resolves it from PyPI; the `>=0.0.2a3` specifier is an alpha,
+// so `--prerelease=allow` lets uv pick it (and any prerelease transitive deps).
+// The plugin dir adds a friendly display name for the doc author.
+function paperArgs() {
+  return {
+    uv: ['--prerelease=allow', '--extra', 'paper'],
+    ds: [
+      '--internal',
+      INTERNAL_DB,
+      '--plugins-dir',
+      PLUGINS_DIR,
+      '-s',
+      'permissions.datasette-paper-create',
+      'true',
+      '-s',
+      'permissions.paper-view',
+      'true',
+    ],
+  };
+}
+
+export async function startServer(needsPaper) {
+  await setupDataDb(needsPaper);
   // Refuse to start over an already-listening server rather than screenshot
   // whatever is there — the poll can't tell a stale server from ours.
   if (await reachable()) {
@@ -43,12 +81,14 @@ export async function startServer() {
       `something is already serving on ${BASE}. Stop it (or set SHOTS_PORT) and retry.`
     );
   }
+  const paper = needsPaper ? paperArgs() : { uv: [], ds: [] };
   // `detached: true` puts datasette in its own process group. datasette is a
   // grandchild of `uv run`, so we kill the whole group in stopServer.
   const child = spawn(
     'uv',
     [
       'run',
+      ...paper.uv,
       'datasette',
       DATA_DB,
       '--secret',
@@ -65,6 +105,7 @@ export async function startServer() {
       '-s',
       'permissions.datasette-alerts-access',
       'true',
+      ...paper.ds,
       '-p',
       String(PORT),
     ],

@@ -42,6 +42,12 @@ export default defineConfig({
     outDir: "../datasette_libfec",
     assetsDir: "static/gen",
     rollupOptions: {
+      // App builds default to `preserveEntrySignatures: false`, which strips an
+      // entry's exports — that tree-shakes away the paper-embed provider's
+      // `export default` (paper reads `import(url).default`). Keep signatures so
+      // the provider survives. The view entries have no exports, so this is a
+      // no-op for them.
+      preserveEntrySignatures: "allow-extension",
       input: {
         index: "src/index_view.ts",
         import: "src/import_view.ts",
@@ -54,6 +60,8 @@ export default defineConfig({
         filing_day: "src/filing_day_view.ts",
         alerts: "src/alerts_view.ts",
         alert_detail: "src/alert_detail_view.ts",
+        // datasette-paper embed provider (FEC candidate card + inline pill).
+        "paper-embed": "src/paper_embed.ts",
       },
     },
   },

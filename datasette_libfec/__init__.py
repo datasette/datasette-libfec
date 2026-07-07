@@ -14,6 +14,9 @@ from . import (
 )
 from .router import router, LIBFEC_ACCESS_NAME, LIBFEC_WRITE_NAME
 
+# datasette-paper third-party embed provider (no-op unless paper is installed).
+from .paper import paper_embed_provider  # noqa: F401
+
 _ = (
     routes_rss,
     routes_export,
