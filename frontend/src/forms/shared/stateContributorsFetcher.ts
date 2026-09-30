@@ -46,13 +46,17 @@ export async function fetchScopeMetadata(
  * - Line 11(a)(i) itemized individual contributions (non-memo). Earmarked
  *   contributions (e.g. via WinRed) are itemized here under the donor; the
  *   conduit's own "earmarked-conduit details" rows are memo entries.
- * - Line 12 memo entries for individuals: the donors behind joint fundraising
- *   committee transfers. The non-memo line 12 row is the transfer from the JFC
- *   itself, which would otherwise be attributed to the JFC's state.
+ * - Line 12 memo entries for individuals (and tribes, which FEC also counts):
+ *   the donors behind joint fundraising committee transfers. The non-memo line
+ *   12 row is the transfer from the JFC itself, which would otherwise be
+ *   attributed to the JFC's state.
+ *
+ * Partnership/LLC contributions are counted once, via the non-memo 11(a)(i)
+ * row; the memo attributions to individual partners are skipped.
  */
 export const INDIVIDUAL_CONTRIBUTIONS_WHERE = `(
   (form_type = 'SA11AI' AND memo_code IS NOT 'X')
-  OR (form_type = 'SA12' AND memo_code = 'X' AND entity_type = 'IND')
+  OR (form_type = 'SA12' AND memo_code = 'X' AND entity_type IN ('IND', 'ORG'))
 )`;
 
 export function fetchStateContributions(
