@@ -15,10 +15,9 @@
   interface Props {
     scope: FilingScope;
     homeState?: string | null;
-    formTypeFilter?: string;
   }
 
-  let { scope, homeState = null, formTypeFilter }: Props = $props();
+  let { scope, homeState = null }: Props = $props();
 
   const dbName = get(databaseName);
 
@@ -60,7 +59,7 @@
   }
 
   function stateUrl(stateCode: string): string {
-    return buildStateUrl(dbName, scope, stateCode, formTypeFilter, filingIdsResult.data);
+    return buildStateUrl(dbName, scope, stateCode, filingIdsResult.data);
   }
 
   const total = $derived(
@@ -79,10 +78,7 @@
   const sourceNote = $derived(() => {
     const formType = metadata.data?.form_type;
     if (!formType) return null;
-    if (formTypeFilter === 'SA11AI') {
-      return `Source: ${formType}, Schedule A, Line 11(a)(i)`;
-    }
-    return `Source: ${formType}, Schedule A`;
+    return `Source: ${formType}, Schedule A, Line 11(a)(i) and Line 12 joint fundraising memo entries`;
   });
 
   const N = 10;
@@ -146,7 +142,7 @@
         </tbody>
       </table>
     </div>
-    <p class="info-note">Only includes individuals who have given $200 or more this cycle.</p>
+    <p class="info-note">Only includes itemized contributions (generally donors who have given more than $200 this cycle).</p>
     {#if sourceNote()}
       <p class="info-note">{sourceNote()}</p>
     {/if}
