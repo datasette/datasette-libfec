@@ -327,7 +327,6 @@ SELECT * FROM final`;
         <div class="schedule-col-1">
           <StateContributors
             scope={committeeScope}
-            formTypeFilter={isF3Committee ? 'SA11AI' : undefined}
             homeState={isF3Committee ? pageData.candidate?.state : undefined}
           />
         </div>

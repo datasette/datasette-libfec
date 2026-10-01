@@ -40,6 +40,25 @@ export async function fetchScopeMetadata(
   );
 }
 
+/**
+ * Schedule A rows that represent contributions from individuals, matching how
+ * FEC.gov builds its by-state breakdown:
+ * - Line 11(a)(i) itemized individual contributions (non-memo). Earmarked
+ *   contributions (e.g. via WinRed) are itemized here under the donor; the
+ *   conduit's own "earmarked-conduit details" rows are memo entries.
+ * - Line 12 memo entries for individuals (and tribes, which FEC also counts):
+ *   the donors behind joint fundraising committee transfers. The non-memo line
+ *   12 row is the transfer from the JFC itself, which would otherwise be
+ *   attributed to the JFC's state.
+ *
+ * Partnership/LLC contributions are counted once, via the non-memo 11(a)(i)
+ * row; the memo attributions to individual partners are skipped.
+ */
+export const INDIVIDUAL_CONTRIBUTIONS_WHERE = `(
+  (form_type = 'SA11AI' AND memo_code IS NOT 'X')
+  OR (form_type = 'SA12' AND memo_code = 'X' AND entity_type IN ('IND', 'ORG'))
+)`;
+
 export function fetchStateContributions(
   dbName: string,
   scope: FilingScope
@@ -54,7 +73,7 @@ export function fetchStateContributions(
     WHERE ${where}
       AND contributor_state IS NOT NULL
       AND contributor_state != ''
-      AND memo_code != 'X'
+      AND ${INDIVIDUAL_CONTRIBUTIONS_WHERE}
     GROUP BY contributor_state
     ORDER BY total_contributions DESC
   `;
@@ -65,7 +84,6 @@ export function buildStateUrl(
   dbName: string,
   scope: FilingScope,
   stateCode: string,
-  formTypeFilter?: string,
   filingIds?: string[]
 ): string {
   const scopeParams = filingScopeUrlParams(scope, filingIds);
@@ -73,10 +91,7 @@ export function buildStateUrl(
     _sort: 'rowid',
     contributor_state__exact: stateCode,
     ...scopeParams,
-    memo_code__not: 'X',
+    _where: INDIVIDUAL_CONTRIBUTIONS_WHERE.replace(/\s+/g, ' ').trim(),
   });
-  if (formTypeFilter) {
-    params.set('form_type__exact', formTypeFilter);
-  }
   return `/${dbName}/libfec_schedule_a?${params}`;
 }

@@ -176,7 +176,6 @@
         <StateContributors
           scope={{ mode: 'single', filingId }}
           {homeState}
-          formTypeFilter="SA11AI"
         />
       </div>
       <div class="schedule-col-2">

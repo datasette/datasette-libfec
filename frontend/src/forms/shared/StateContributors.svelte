@@ -15,10 +15,9 @@
   interface Props {
     scope: FilingScope;
     homeState?: string | null;
-    formTypeFilter?: string;
   }
 
-  let { scope, homeState = null, formTypeFilter }: Props = $props();
+  let { scope, homeState = null }: Props = $props();
 
   const dbName = get(databaseName);
 
@@ -60,16 +59,29 @@
   }
 
   function stateUrl(stateCode: string): string {
-    return buildStateUrl(dbName, scope, stateCode, formTypeFilter, filingIdsResult.data);
+    return buildStateUrl(dbName, scope, stateCode, filingIdsResult.data);
   }
 
   const total = $derived(
     (contributions.data ?? []).reduce((sum, row) => sum + (row.total_contributions || 0), 0)
   );
+  // On F3X (PACs, party committees, super PACs) line 11(a)(i) also carries
+  // contributions from corporations, LLCs and other non-committee "persons",
+  // which can dwarf the money from actual individuals at super PACs.
+  const isF3X = $derived(metadata.data?.form_type === 'F3X');
+  const title = $derived(
+    isF3X
+      ? 'Contributions from Individuals & Other Persons by State'
+      : 'Individual Contributions by State'
+  );
+
   const subtitle = $derived(() => {
     const m = metadata.data;
     if (!m?.committee_name) return null;
-    const parts = [`Top individual contributions to ${m.committee_name}`];
+    const kind = isF3X
+      ? 'contributions from individuals and other persons'
+      : 'individual contributions';
+    const parts = [`Top ${kind} to ${m.committee_name}`];
     if (m.coverage_from_date && m.coverage_through_date) {
       parts[0] += ` between ${formatDate(m.coverage_from_date)} and ${formatDate(m.coverage_through_date)}`;
     }
@@ -79,10 +91,7 @@
   const sourceNote = $derived(() => {
     const formType = metadata.data?.form_type;
     if (!formType) return null;
-    if (formTypeFilter === 'SA11AI') {
-      return `Source: ${formType}, Schedule A, Line 11(a)(i)`;
-    }
-    return `Source: ${formType}, Schedule A`;
+    return `Source: ${formType}, Schedule A, Line 11(a)(i) and Line 12 joint fundraising memo entries`;
   });
 
   const N = 10;
@@ -96,12 +105,12 @@
 
 {#if contributions.isLoading}
   <div class="section-box">
-    <h4>Individual Contributions by State</h4>
+    <h4>{title}</h4>
     <div class="loading">Loading...</div>
   </div>
 {:else if contributions.data && contributions.data.length > 0}
   <div class="section-box">
-    <h4>Individual Contributions by State</h4>
+    <h4>{title}</h4>
     {#if subtitle()}
       <p class="subtitle">{subtitle()}</p>
     {/if}
@@ -146,7 +155,15 @@
         </tbody>
       </table>
     </div>
-    <p class="info-note">Only includes individuals who have given $200 or more this cycle.</p>
+    <p class="info-note">
+      Only includes itemized contributions (generally donors who have given more than $200 this
+      cycle).
+    </p>
+    {#if isF3X}
+      <p class="info-note">
+        Includes contributions from corporations, LLCs and other non-committee sources.
+      </p>
+    {/if}
     {#if sourceNote()}
       <p class="info-note">{sourceNote()}</p>
     {/if}
