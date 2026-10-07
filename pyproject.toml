@@ -13,7 +13,7 @@ dependencies = [
     "datasette>=1a23",
     "datasette-plugin-router>=0.0.1a2",
     "datasette-vite>=0.0.1a4",
-    "libfec>=0.0.25",
+    "libfec==0.0.34",
     "sqlite-migrate>=0.1b0",
     "sqlite-utils>=3.38",
     "python-ulid>=3",
